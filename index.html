@@ -372,6 +372,37 @@
           </table>
         </div>
       </div>
+
+      <!-- Master Admin Section: Manage Admin Team -->
+      <div class="admin-table-card" id="masterAdminSection" style="display: none;">
+        <div class="card-table-header">
+          <div>
+            <h3 class="table-card-title">👑 এডমিন টিম পরিচালনা (মাস্টার এডমিন)</h3>
+            <p class="table-card-subtitle">নতুন এডমিন যুক্ত করুন অথবা যেকোনো এডমিন একাউন্ট রিমুভ করুন</p>
+          </div>
+          <button class="btn-primary" onclick="openAddAdminModal()">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>নতুন এডমিন যোগ করুন</span>
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>এডমিনের নাম</th>
+                <th>মোবাইল নম্বর (লগইন)</th>
+                <th>পাসওয়ার্ড</th>
+                <th>পদবী</th>
+                <th style="text-align: right;">অ্যাকশন</th>
+              </tr>
+            </thead>
+            <tbody id="adminTeamTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -616,6 +647,42 @@
         <div class="modal-footer">
           <button type="button" class="btn-secondary" onclick="closeModal('adminAddDonorModal')">বাতিল</button>
           <button type="submit" class="btn-primary">ডোনার যুক্ত করুন</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADD SUB-ADMIN MODAL (Master Admin Only) -->
+  <div id="addAdminModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">নতুন এডমিন যুক্ত করুন</h3>
+          <p class="modal-subtitle">নতুন এডমিনের নাম, মোবাইল নম্বর এবং লগইন পাসওয়ার্ড দিন</p>
+        </div>
+        <button class="modal-close" onclick="closeModal('addAdminModal')">&times;</button>
+      </div>
+
+      <form id="addAdminForm" onsubmit="handleCreateAdmin(event)" autocomplete="off">
+        <div class="form-group">
+          <label for="newAdminName">এডমিনের নাম *</label>
+          <input type="text" id="newAdminName" required placeholder="উদাঃ মোঃ নাজমুল ইসলাম" autocomplete="off">
+        </div>
+
+        <div class="form-group">
+          <label for="newAdminPhone">মোবাইল নম্বর (লগইন নম্বর) *</label>
+          <input type="tel" id="newAdminPhone" required pattern="01[3-9][0-9]{8}" placeholder="01XXXXXXXXX" autocomplete="off">
+          <small class="field-hint">এই নম্বর দিয়ে তিনি এডমিন প্যানেলে লগইন করবেন</small>
+        </div>
+
+        <div class="form-group">
+          <label for="newAdminPassword">লগইন পাসওয়ার্ড *</label>
+          <input type="text" id="newAdminPassword" required placeholder="পাসওয়ার্ড দিন" autocomplete="new-password">
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('addAdminModal')">বাতিল</button>
+          <button type="submit" class="btn-primary">এডমিন যুক্ত করুন</button>
         </div>
       </form>
     </div>

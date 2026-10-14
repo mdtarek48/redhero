@@ -15,6 +15,9 @@ import {
   saveDonorToCloud, 
   updateDonorInCloud, 
   deleteDonorFromCloud, 
+  subscribeToAdmins,
+  saveAdminToCloud,
+  deleteAdminFromCloud,
   saveCustomFirebaseConfig, 
   clearCustomFirebaseConfig 
 } from './firebase-config.js';
@@ -22,10 +25,15 @@ import {
 // 90 Days in Milliseconds: 90 days * 24 hrs * 60 mins * 60 secs * 1000 ms
 const COOLDOWN_DURATION_MS = 90 * 24 * 60 * 60 * 1000;
 
+// Master Admin Credentials
+const MASTER_ADMIN_PHONE = '01711578574';
+const MASTER_ADMIN_PASS = '129430';
+
 // Local Session Keys (Only for maintaining who is logged into this browser)
 const STORAGE_DONOR_AUTH_KEY = 'blood_seva_auth_donor_v1';
 const STORAGE_ADMIN_AUTH_KEY = 'blood_seva_auth_admin_v1';
 const STORAGE_DONORS_BACKUP_KEY = 'blood_seva_donors_backup_v1';
+const STORAGE_ADMINS_BACKUP_KEY = 'blood_seva_admins_backup_v1';
 
 // Bengali Number Converter Helper
 function toBnNum(num) {
@@ -140,8 +148,11 @@ const INITIAL_SEED_DONORS = [
 // App State
 const state = {
   donors: [],
+  admins: [],
   currentDonor: null,
+  currentAdmin: null,
   isAdmin: false,
+  isMasterAdmin: false,
   currentView: 'public', // 'public', 'donor', 'admin'
   filters: {
     bloodGroup: 'ALL',
@@ -174,7 +185,7 @@ function setupFirebaseConnection() {
     if (indicator) indicator.className = 'cloud-indicator active';
     if (text) text.textContent = 'ফায়ারবেস ক্লাউড কানেক্টেড (রিয়েলটাইম সিঙ্ক সক্রিয়)';
 
-    // Subscribe to Firestore Real-time updates
+    // Subscribe to Firestore Real-time updates for Donors
     subscribeToDonors((cloudDonors) => {
       console.log('🔥 Received Real-time Donors from Firebase:', cloudDonors.length);
       if (cloudDonors.length === 0) {
@@ -191,11 +202,38 @@ function setupFirebaseConnection() {
       showToast('ফায়ারবেস ডাটাবেস পারমিশন চেক করুন (Firestore Rules)', 'warning');
       fallbackToBackup();
     });
+
+    // Subscribe to Firestore Real-time updates for Admins
+    subscribeToAdmins((cloudAdmins) => {
+      console.log('🔥 Received Real-time Admins from Firebase:', cloudAdmins.length);
+      state.admins = cloudAdmins;
+      localStorage.setItem(STORAGE_ADMINS_BACKUP_KEY, JSON.stringify(cloudAdmins));
+      if (state.currentView === 'admin' && state.isMasterAdmin) {
+        renderAdminTeam();
+      }
+    }, (err) => {
+      console.error('Firebase admins sync error:', err);
+      fallbackAdminsBackup();
+    });
   } else {
     state.usingFirebase = false;
     if (indicator) indicator.className = 'cloud-indicator';
     if (text) text.textContent = 'ফায়ারবেস এখনও কনফিগার করা হয়নি। ক্লাউডে ডাটা সেভ করতে ফায়ারবেস সেটিংস এ ক্লিক করুন।';
     fallbackToBackup();
+    fallbackAdminsBackup();
+  }
+}
+
+function fallbackAdminsBackup() {
+  const backup = localStorage.getItem(STORAGE_ADMINS_BACKUP_KEY);
+  if (backup) {
+    try {
+      state.admins = JSON.parse(backup);
+    } catch (e) {
+      state.admins = [];
+    }
+  } else {
+    state.admins = [];
   }
 }
 
@@ -259,7 +297,11 @@ function updateNavbarAuth() {
       btnPortal.style.display = 'inline-flex';
       btnPortal.classList.toggle('active', state.currentView === 'admin');
     }
-    if (portalLabel) portalLabel.textContent = 'এডমিন প্যানেল';
+    if (portalLabel) {
+      portalLabel.textContent = state.isMasterAdmin 
+        ? 'মাস্টার এডমিন' 
+        : (state.currentAdmin?.name ? state.currentAdmin.name.split(' ')[0] + ' (এডমিন)' : 'এডমিন প্যানেল');
+    }
     if (btnLogout) btnLogout.style.display = 'inline-flex';
   } else if (state.currentDonor) {
     if (btnLogin) btnLogin.style.display = 'none';
@@ -283,12 +325,15 @@ function restoreAuthSessions() {
       const session = JSON.parse(sessionRaw);
       if (session.role === 'ADMIN') {
         state.isAdmin = true;
+        state.isMasterAdmin = !!session.isMaster;
+        state.currentAdmin = session;
         state.currentDonor = null;
       } else if (session.role === 'DONOR' && session.id) {
         const found = state.donors.find(d => d.id === session.id);
         if (found) {
           state.currentDonor = found;
           state.isAdmin = false;
+          state.isMasterAdmin = false;
         }
       }
     } catch (e) {
@@ -582,14 +627,16 @@ function handleUnifiedLogin(e) {
   e.preventDefault();
   const phone = document.getElementById('loginPhone').value.trim();
   const password = document.getElementById('loginPassword').value.trim();
-
-  // 1. Check if Admin credentials (Only 01711578574 / 129430)
   const cleanPhone = phone.replace(/^\+88/, '').replace(/^88/, '');
-  const isAdminLogin = (cleanPhone === '01711578574' || phone === '01711578574') && password === '129430';
-  if (isAdminLogin) {
+
+  // 1. Check if Master Admin (01711578574 / 129430)
+  const isMasterLogin = (cleanPhone === MASTER_ADMIN_PHONE || phone === MASTER_ADMIN_PHONE) && password === MASTER_ADMIN_PASS;
+  if (isMasterLogin) {
     state.isAdmin = true;
+    state.isMasterAdmin = true;
+    state.currentAdmin = { name: 'মাস্টার এডমিন', phone: MASTER_ADMIN_PHONE, role: 'MASTER_ADMIN' };
     state.currentDonor = null;
-    localStorage.setItem(STORAGE_AUTH_SESSION_KEY, JSON.stringify({ role: 'ADMIN' }));
+    localStorage.setItem(STORAGE_AUTH_SESSION_KEY, JSON.stringify({ role: 'ADMIN', isMaster: true, phone: MASTER_ADMIN_PHONE }));
 
     closeModal('unifiedLoginModal');
     const form = document.getElementById('unifiedLoginForm');
@@ -597,15 +644,44 @@ function handleUnifiedLogin(e) {
 
     updateNavbarAuth();
     switchView('admin');
-    showToast('স্বাগতম এডমিন! এডমিন প্যানেলে সফলভাবে প্রবেশ করেছেন।', 'success');
+    showToast('👑 স্বাগতম মাস্টার এডমিন! এডমিন প্যানেলে সফলভাবে প্রবেশ করেছেন।', 'success');
     return;
   }
 
-  // 2. Check if Donor credentials
-  const foundDonor = state.donors.find(d => d.phone === phone && d.password === password);
+  // 2. Check if Added Sub-Admin
+  const foundAdmin = state.admins.find(a => {
+    const aClean = a.phone ? a.phone.replace(/^\+88/, '').replace(/^88/, '') : '';
+    return (aClean === cleanPhone || a.phone === phone) && a.password === password;
+  });
+
+  if (foundAdmin) {
+    state.isAdmin = true;
+    state.isMasterAdmin = false;
+    state.currentAdmin = foundAdmin;
+    state.currentDonor = null;
+    localStorage.setItem(STORAGE_AUTH_SESSION_KEY, JSON.stringify({ role: 'ADMIN', isMaster: false, phone: foundAdmin.phone, name: foundAdmin.name }));
+
+    closeModal('unifiedLoginModal');
+    const form = document.getElementById('unifiedLoginForm');
+    if (form) form.reset();
+
+    updateNavbarAuth();
+    switchView('admin');
+    showToast(`স্বাগতম ${foundAdmin.name}! এডমিন প্যানেলে প্রবেশ করেছেন।`, 'success');
+    return;
+  }
+
+  // 3. Check if Donor credentials
+  const foundDonor = state.donors.find(d => {
+    const dClean = d.phone ? d.phone.replace(/^\+88/, '').replace(/^88/, '') : '';
+    return (dClean === cleanPhone || d.phone === phone) && d.password === password;
+  });
+
   if (foundDonor) {
     state.currentDonor = foundDonor;
     state.isAdmin = false;
+    state.isMasterAdmin = false;
+    state.currentAdmin = null;
     localStorage.setItem(STORAGE_AUTH_SESSION_KEY, JSON.stringify({ role: 'DONOR', id: foundDonor.id }));
 
     closeModal('unifiedLoginModal');
@@ -619,12 +695,14 @@ function handleUnifiedLogin(e) {
     return;
   }
 
-  // 3. Credentials did not match
+  // 4. Credentials did not match
   alert('ভুল মোবাইল নম্বর অথবা পাসওয়ার্ড! অনুগ্রহ করে সঠিক তথ্য দিন।');
 }
 
 function handleLogout() {
   state.isAdmin = false;
+  state.isMasterAdmin = false;
+  state.currentAdmin = null;
   state.currentDonor = null;
   localStorage.removeItem(STORAGE_AUTH_SESSION_KEY);
   updateNavbarAuth();
@@ -847,6 +925,17 @@ function renderAdminPanel() {
   }
 
   renderApprovedDonorsTable(approved);
+
+  // Master Admin Section visibility
+  const masterSection = document.getElementById('masterAdminSection');
+  if (masterSection) {
+    if (state.isMasterAdmin) {
+      masterSection.style.display = 'block';
+      renderAdminTeam();
+    } else {
+      masterSection.style.display = 'none';
+    }
+  }
 }
 
 function renderApprovedDonorsTable(list) {
@@ -1061,6 +1150,120 @@ async function handleAdminAddDonor(e) {
 }
 
 // ==========================================================================
+// Master Admin: Admin Team Management Handlers
+// ==========================================================================
+function renderAdminTeam() {
+  const tbody = document.getElementById('adminTeamTableBody');
+  if (!tbody) return;
+
+  let html = `
+    <tr>
+      <td><strong>মাস্টার এডমিন (প্রধান)</strong></td>
+      <td>${MASTER_ADMIN_PHONE}</td>
+      <td>••••••</td>
+      <td><span class="badge-role-master">👑 মাস্টার এডমিন</span></td>
+      <td style="text-align: right;"><span class="text-muted" style="font-size:0.85rem;">ডিফল্ট (স্থায়ী)</span></td>
+    </tr>
+  `;
+
+  if (!state.admins || state.admins.length === 0) {
+    html += `
+      <tr>
+        <td colspan="5" style="text-align: center; padding: 1.5rem; color: #64748b;">
+          কোনো সাব-এডমিন এখনও যোগ করা হয়নি। উপরের <strong>"নতুন এডমিন যোগ করুন"</strong> বাটনে ক্লিক করে যোগ করতে পারেন।
+        </td>
+      </tr>
+    `;
+  } else {
+    html += state.admins.map(admin => `
+      <tr>
+        <td><strong>${admin.name}</strong></td>
+        <td>${admin.phone}</td>
+        <td><code>${admin.password}</code></td>
+        <td><span class="badge-role-admin">সাধারণ এডমিন</span></td>
+        <td style="text-align: right;">
+          <button class="btn-table-action delete" onclick="removeAdminAccount('${admin.id}', '${admin.name}')">
+            🗑️ রিমুভ করুন
+          </button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  tbody.innerHTML = html;
+}
+
+function openAddAdminModal() {
+  const form = document.getElementById('addAdminForm');
+  if (form) form.reset();
+  openModal('addAdminModal');
+}
+
+async function handleCreateAdmin(e) {
+  e.preventDefault();
+  const name = document.getElementById('newAdminName').value.trim();
+  const phone = document.getElementById('newAdminPhone').value.trim();
+  const password = document.getElementById('newAdminPassword').value.trim();
+
+  const cleanPhone = phone.replace(/^\+88/, '').replace(/^88/, '');
+  if (cleanPhone === MASTER_ADMIN_PHONE) {
+    alert('এই নম্বরটি মাস্টার এডমিনের জন্য সংরক্ষিত!');
+    return;
+  }
+
+  if (state.admins.some(a => a.phone === phone || a.phone === cleanPhone)) {
+    alert('এই মোবাইল নম্বরে ইতিমধ্যে একজন এডমিন যোগ করা আছে!');
+    return;
+  }
+
+  const newAdmin = {
+    id: 'admin_' + Date.now(),
+    name,
+    phone,
+    password,
+    role: 'ADMIN',
+    createdAt: new Date().toISOString()
+  };
+
+  try {
+    if (state.usingFirebase) {
+      await saveAdminToCloud(newAdmin);
+    } else {
+      state.admins.push(newAdmin);
+      localStorage.setItem(STORAGE_ADMINS_BACKUP_KEY, JSON.stringify(state.admins));
+      renderAdminTeam();
+    }
+
+    closeModal('addAdminModal');
+    showToast(`নতুন এডমিন "${name}" সফলভাবে যুক্ত হয়েছে!`, 'success');
+  } catch (err) {
+    console.error('Failed to create admin:', err);
+    alert('এডমিন সংরক্ষণ ব্যর্থ হয়েছে: ' + err.message);
+  }
+}
+
+async function removeAdminAccount(adminId, adminName) {
+  if (!confirm(`আপনি কি নিশ্চিত যে "${adminName}" এডমিন একাউন্টটি মুছে ফেলতে চান?`)) {
+    return;
+  }
+
+  try {
+    if (state.usingFirebase) {
+      await deleteAdminFromCloud(adminId);
+    } else {
+      state.admins = state.admins.filter(a => a.id !== adminId);
+      localStorage.setItem(STORAGE_ADMINS_BACKUP_KEY, JSON.stringify(state.admins));
+      renderAdminTeam();
+    }
+
+    showToast(`এডমিন "${adminName}" সফলভাবে রিমুভ করা হয়েছে`, 'success');
+  } catch (err) {
+    console.error('Failed to delete admin:', err);
+    alert('এডমিন রিমুভ ব্যর্থ হয়েছে: ' + err.message);
+  }
+}
+
+// ==========================================================================
 // Firebase Settings Modal Handlers
 // ==========================================================================
 function handleSaveFirebaseConfig(e) {
@@ -1139,6 +1342,9 @@ window.adminDeleteDonor = adminDeleteDonor;
 window.openAddDonorModal = openAddDonorModal;
 window.toggleManualDonationDateInput = toggleManualDonationDateInput;
 window.handleAdminAddDonor = handleAdminAddDonor;
+window.openAddAdminModal = openAddAdminModal;
+window.handleCreateAdmin = handleCreateAdmin;
+window.removeAdminAccount = removeAdminAccount;
 window.handleSaveFirebaseConfig = handleSaveFirebaseConfig;
 window.handleClearFirebaseConfig = handleClearFirebaseConfig;
 window.openModal = openModal;

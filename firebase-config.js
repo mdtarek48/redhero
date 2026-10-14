@@ -141,3 +141,43 @@ export async function deleteDonorFromCloud(donorId) {
   const donorRef = doc(db, "donors", donorId);
   await deleteDoc(donorRef);
 }
+
+// Subscribe to real-time admins collection
+export function subscribeToAdmins(onSuccess, onError) {
+  if (!db) {
+    return null;
+  }
+  const adminsCol = collection(db, "admins");
+  return onSnapshot(adminsCol, (snapshot) => {
+    const list = [];
+    snapshot.forEach((docSnap) => {
+      list.push({ id: docSnap.id, ...docSnap.data() });
+    });
+    onSuccess(list);
+  }, (err) => {
+    console.error("Firestore admins snapshot error:", err);
+    if (onError) onError(err);
+  });
+}
+
+// Add or save admin to Firestore
+export async function saveAdminToCloud(admin) {
+  if (!db) {
+    throw new Error("ফায়ারবেস এখনও কনফিগার করা হয়নি।");
+  }
+  const adminRef = doc(db, "admins", admin.id);
+  await setDoc(adminRef, {
+    ...admin,
+    updatedAt: Date.now()
+  });
+}
+
+// Delete admin from cloud
+export async function deleteAdminFromCloud(adminId) {
+  if (!db) {
+    throw new Error("ফায়ারবেস এখনও কনফিগার করা হয়নি।");
+  }
+  const adminRef = doc(db, "admins", adminId);
+  await deleteDoc(adminRef);
+}
+
