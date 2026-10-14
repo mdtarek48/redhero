@@ -526,6 +526,12 @@ function switchView(viewName) {
 // Unified Portal & Login System (Single Login for Admin & Donors)
 // ==========================================================================
 function openUnifiedLoginModal() {
+  const form = document.getElementById('unifiedLoginForm');
+  if (form) form.reset();
+  const phone = document.getElementById('loginPhone');
+  if (phone) phone.value = '';
+  const pass = document.getElementById('loginPassword');
+  if (pass) pass.value = '';
   openModal('unifiedLoginModal');
 }
 

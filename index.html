@@ -548,14 +548,14 @@
         <button class="modal-close" onclick="closeModal('unifiedLoginModal')">&times;</button>
       </div>
 
-      <form id="unifiedLoginForm" onsubmit="handleUnifiedLogin(event)">
+      <form id="unifiedLoginForm" onsubmit="handleUnifiedLogin(event)" autocomplete="off">
         <div class="form-group">
           <label for="loginPhone">মোবাইল নম্বর</label>
-          <input type="text" id="loginPhone" required placeholder="017XXXXXXXX">
+          <input type="text" id="loginPhone" required placeholder="017XXXXXXXX" autocomplete="off" value="">
         </div>
         <div class="form-group">
           <label for="loginPassword">পাসওয়ার্ড</label>
-          <input type="password" id="loginPassword" required placeholder="আপনার পাসওয়ার্ড দিন">
+          <input type="password" id="loginPassword" required placeholder="আপনার পাসওয়ার্ড দিন" autocomplete="new-password" value="">
         </div>
 
         <div class="modal-footer">
