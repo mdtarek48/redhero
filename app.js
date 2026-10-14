@@ -583,8 +583,9 @@ function handleUnifiedLogin(e) {
   const phone = document.getElementById('loginPhone').value.trim();
   const password = document.getElementById('loginPassword').value.trim();
 
-  // 1. Check if Admin credentials
-  const isAdminLogin = (phone === '01700000000' || phone.toLowerCase() === 'admin' || phone.toLowerCase() === 'tarek') && (password === 'admin123' || password === 'tarek' || password === 'tarek123');
+  // 1. Check if Admin credentials (Only 01711578574 / 129430)
+  const cleanPhone = phone.replace(/^\+88/, '').replace(/^88/, '');
+  const isAdminLogin = (cleanPhone === '01711578574' || phone === '01711578574') && password === '129430';
   if (isAdminLogin) {
     state.isAdmin = true;
     state.currentDonor = null;
