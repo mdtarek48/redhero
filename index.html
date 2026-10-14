@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>রক্তদান - জীবন বাঁচান | ফায়ারবেস ব্লাড ডোনার প্ল্যাটফর্ম</title>
+  <meta name="description" content="জরুরি প্রয়োজনে ব্লাড ডোনার খুঁজুন এবং সরাসরি কল করুন। রক্তদাতাদের জন্য ৯০ দিনের অটোমেটিক কুলডাউন ও কল লকিং সুবিধা।">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Firebase Cloud Connectivity Alert Bar (Shows if config is needed or active) -->
+  <div id="firebaseStatusBanner" class="cloud-status-strip">
+    <div class="cloud-status-content">
+      <span class="cloud-indicator" id="cloudStatusIndicator"></span>
+      <span id="cloudStatusText">ফায়ারবেস ক্লাউড ডাটাবেস চেক করা হচ্ছে...</span>
+      <button class="btn-cloud-config" onclick="openModal('firebaseModal')">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <span>ফায়ারবেস সেটিংস</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Top Navigation Header -->
+  <header class="navbar" id="mainHeader">
+    <div class="nav-container">
+      <div class="brand-logo" onclick="switchView('public')">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <span class="logo-title">ব্লাড সেবা</span>
+          <span class="logo-subtitle">ফায়ারবেস ক্লাউড চালিত ব্লাড ব্যাংক</span>
+        </div>
+      </div>
+
+      <nav class="nav-actions">
+        <button class="nav-btn active" id="navBtnPublic" onclick="switchView('public')">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <span>ডোনার খুঁজুন</span>
+        </button>
+
+        <button class="nav-btn" id="navBtnDonorPortal" onclick="openDonorPortalModal()">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          <span id="donorNavLabel">ডোনার ড্যাশবোর্ড</span>
+        </button>
+
+        <button class="nav-btn admin-badge-btn" id="navBtnAdmin" onclick="openAdminModal()">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <span>এডমিন প্যানেল</span>
+          <span class="pending-count-pill" id="pendingPillCount" style="display:none;">০</span>
+        </button>
+
+        <button class="btn-primary-accent" onclick="openRegisterModal()">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>ডোনার রেজিস্ট্রেশন</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Notification Banner (Toast) -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- MAIN VIEW: PUBLIC SEEKER VIEW (No Login Required) -->
+  <main id="publicView" class="view-section">
+    <!-- Hero Banner with stats and search -->
+    <section class="hero-section">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span class="pulse-dot"></span>
+          <span>জরুরি প্রয়োজনে ডোনারদের সরাসরি ফ্রি কল করুন</span>
+        </div>
+        <h1 class="hero-title">এক ব্যাগ রক্ত, একটি নতুন জীবন</h1>
+        <p class="hero-desc">লগিন ছাড়াই আপনার পছন্দের রক্তের গ্রুপ ও এলাকার ডোনারদের খুঁজুন। সম্প্রতি রক্তদানকারী ডোনারদের ৯০ দিন বিশ্রাম নিশ্চিতে তাদের কল সাময়িক লক রাখা হয়।</p>
+
+        <!-- Search & Filter Card -->
+        <div class="filter-card">
+          <div class="filter-grid">
+            <div class="filter-group">
+              <label for="filterBloodGroup">রক্তের গ্রুপ</label>
+              <div class="select-wrapper">
+                <select id="filterBloodGroup" onchange="applyFilters()">
+                  <option value="ALL">সকল রক্তের গ্রুপ</option>
+                  <option value="A+">A+ (এ পজিটিভ)</option>
+                  <option value="A-">A- (এ নেগেটিভ)</option>
+                  <option value="B+">B+ (বি পজিটিভ)</option>
+                  <option value="B-">B- (বি নেগেটিভ)</option>
+                  <option value="AB+">AB+ (এবি পজিটিভ)</option>
+                  <option value="AB-">AB- (এবি নেগেটিভ)</option>
+                  <option value="O+">O+ (ও পজিটিভ)</option>
+                  <option value="O-">O- (ও নেগেটিভ)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <label for="filterDistrict">জেলা / শহর</label>
+              <div class="select-wrapper">
+                <select id="filterDistrict" onchange="applyFilters()">
+                  <option value="ALL">সকল জেলা</option>
+                  <option value="ঢাকা">ঢাকা</option>
+                  <option value="চট্টগ্রাম">চট্টগ্রাম</option>
+                  <option value="সিলেট">সিলেট</option>
+                  <option value="রাজশাহী">রাজশাহী</option>
+                  <option value="খুলনা">খুলনা</option>
+                  <option value="বরিশাল">বরিশাল</option>
+                  <option value="রংপুর">রংপুর</option>
+                  <option value="ময়মনসিংহ">ময়মনসিংহ</option>
+                  <option value="কুমিল্লা">কুমিল্লা</option>
+                  <option value="বগুড়া">বগুড়া</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <label for="filterStatus">উপলব্ধতা (স্ট্যাটাস)</label>
+              <div class="select-wrapper">
+                <select id="filterStatus" onchange="applyFilters()">
+                  <option value="ALL">সকল ডোনার</option>
+                  <option value="AVAILABLE" selected>শুধুমাত্র প্রস্তুত ডোনার (কলযোগ্য)</option>
+                  <option value="COOLDOWN">বিশ্রামে আছেন (৯০ দিনের কাউন্টডাউন)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="filter-group search-btn-group">
+              <label>&nbsp;</label>
+              <button class="btn-reset-filters" onclick="resetFilters()">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"></path><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                <span>রিসেট ফিল্টার</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Summary Bar -->
+        <div class="stats-strip">
+          <div class="stat-item">
+            <span class="stat-number" id="statReadyCount">০</span>
+            <span class="stat-label">রক্তদানে প্রস্তুত</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-number" id="statCooldownCount">০</span>
+            <span class="stat-label">বিশ্রামে আছেন (৯০ দিন)</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-number" id="statTotalApproved">০</span>
+            <span class="stat-label">অনুমোদিত মোট রক্তদাতা</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Donors Directory Section -->
+    <section class="donors-section">
+      <div class="section-container">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">অনুমোদিত রক্তদাতাদের তালিকা</h2>
+            <p class="section-subtitle" id="donorCountNotice">বর্তমান ফিল্টারে ডোনার দেখানো হচ্ছে</p>
+          </div>
+          <div class="legend-box">
+            <div class="legend-item"><span class="legend-dot green"></span> প্রস্তুত (সরাসরি কল করুন)</div>
+            <div class="legend-item"><span class="legend-dot amber"></span> বিশ্রামে আছেন (কল লক)</div>
+          </div>
+        </div>
+
+        <!-- Donors Grid -->
+        <div id="donorsGrid" class="donors-grid">
+          <!-- Dynamically populated via JavaScript -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="noDonorsState" class="empty-state" style="display: none;">
+          <div class="empty-icon">🩸</div>
+          <h3>কোনো রক্তদাতা পাওয়া যায়নি</h3>
+          <p>আপনার নির্বাচিত রক্তের গ্রুপ বা জেলায় এই মুহূর্তে প্রস্তুত ডোনার নেই। অন্য জেলা নির্বাচন করুন অথবা ফিল্টার রিসেট করুন।</p>
+          <button class="btn-secondary" onclick="resetFilters()">সকল ডোনার দেখুন</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- DONOR DASHBOARD VIEW -->
+  <section id="donorDashboardView" class="view-section" style="display: none;">
+    <div class="dashboard-container">
+      <div class="dashboard-header-card">
+        <div class="dashboard-user-info">
+          <div class="donor-avatar-large" id="dashAvatarGroup">O+</div>
+          <div>
+            <div class="dash-welcome">স্বাগতম, রক্তদাতা</div>
+            <h2 class="dash-donor-name" id="dashDonorName">আরিফুল ইসলাম</h2>
+            <div class="dash-meta-tags">
+              <span class="tag" id="dashDonorPhone">📱 01700000000</span>
+              <span class="tag" id="dashDonorCity">📍 ঢাকা, মিরপুর</span>
+              <span class="tag status-pill" id="dashApprovalStatus">অনুমোদিত</span>
+            </div>
+          </div>
+        </div>
+        <div class="dashboard-actions">
+          <button class="btn-outline-danger" onclick="logoutDonor()">লগআউট করুন</button>
+        </div>
+      </div>
+
+      <!-- Pending Approval Alert -->
+      <div id="dashPendingWarning" class="alert-box warning-alert" style="display:none;">
+        <div class="alert-icon">⏳</div>
+        <div>
+          <h4>আপনার একাউন্টটি বর্তমানে অ্যাডমিন রিভিউতে আছে</h4>
+          <p>অ্যাডমিন প্যানেল থেকে অনুমোদন (Approve) করার পর আপনার প্রোফাইল সাধারণ ব্যবহারকারীদের তালিকায় ক্লাউডে যুক্ত হয়ে প্রদর্শিত হবে।</p>
+        </div>
+      </div>
+
+      <!-- Cooldown Core Feature Card -->
+      <div class="cooldown-action-card">
+        <div class="cooldown-card-body">
+          <div class="cooldown-info-side">
+            <span class="badge-mini">রক্তদান নিয়ন্ত্রণ প্যানেল</span>
+            <h3>আপনি কি সম্প্রতি রক্ত দিয়েছেন?</h3>
+            <p>রক্তদানের পর আপনার স্বাস্থ্য সুরক্ষা নিশ্চিত করতে এবং অপ্রয়োজনীয় কল বন্ধ রাখতে <strong>"আমি রক্ত দিয়েছি"</strong> অপশনটি চালু করুন। পরবর্তী ৯০ দিন ফায়ারবেস ক্লাউডে আপনার ফোন নম্বর লক থাকবে এবং লাইভ কাউন্টডাউন চলবে।</p>
+            
+            <div class="cooldown-status-banner" id="dashCooldownBanner">
+              <!-- Dynamically populated status -->
+            </div>
+          </div>
+
+          <div class="cooldown-trigger-side">
+            <button class="btn-donate-now" id="btnMarkDonated" onclick="confirmMarkDonated()">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+              </svg>
+              <span>আমি রক্ত দিয়েছি</span>
+            </button>
+            <div class="cooldown-trigger-note">
+              ক্লিক করলেই স্বয়ংক্রিয়ভাবে ক্লাউডে ৯০ দিনের কাউন্টডাউন শুরু হবে।
+            </div>
+          </div>
+        </div>
+
+        <!-- Cooldown Timer Display -->
+        <div id="dashLiveTimerBox" class="dash-timer-box" style="display:none;">
+          <div class="timer-title">পরবর্তী রক্তদানের জন্য বাকি সময় (৯০ দিনের কাউন্টডাউন):</div>
+          <div class="timer-countdown-grid">
+            <div class="timer-unit">
+              <span class="unit-val" id="timerDays">00</span>
+              <span class="unit-lbl">দিন</span>
+            </div>
+            <div class="timer-colon">:</div>
+            <div class="timer-unit">
+              <span class="unit-val" id="timerHours">00</span>
+              <span class="unit-lbl">ঘণ্টা</span>
+            </div>
+            <div class="timer-colon">:</div>
+            <div class="timer-unit">
+              <span class="unit-val" id="timerMinutes">00</span>
+              <span class="unit-lbl">মিনিট</span>
+            </div>
+            <div class="timer-colon">:</div>
+            <div class="timer-unit">
+              <span class="unit-val" id="timerSeconds">00</span>
+              <span class="unit-lbl">সেকেন্ড</span>
+            </div>
+          </div>
+          <div class="timer-footer-note">
+            🛡️ এই সময়টিতে আপনার ফোন নম্বর সাধারণ ব্যবহারকারীদের কাছে লক রয়েছে। কেউ আপনাকে কল দিতে পারবে না।
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Stats & History -->
+      <div class="donor-stats-grid">
+        <div class="card-stat">
+          <div class="stat-icon-wrap red">🩸</div>
+          <div>
+            <div class="stat-number-sm" id="dashTotalDonations">৩ বার</div>
+            <div class="stat-sub">মোট রক্তদান করেছেন</div>
+          </div>
+        </div>
+        <div class="card-stat">
+          <div class="stat-icon-wrap green">❤️</div>
+          <div>
+            <div class="stat-number-sm" id="dashLivesSaved">৩ জন</div>
+            <div class="stat-sub">সম্ভাব্য জীবন রক্ষা করেছেন</div>
+          </div>
+        </div>
+        <div class="card-stat">
+          <div class="stat-icon-wrap blue">📅</div>
+          <div>
+            <div class="stat-number-sm" id="dashLastDonationDate">তথ্য নেই</div>
+            <div class="stat-sub">সর্বশেষ রক্তদানের তারিখ</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADMIN PANEL VIEW -->
+  <section id="adminView" class="view-section" style="display: none;">
+    <div class="admin-container">
+      <div class="admin-topbar">
+        <div>
+          <span class="admin-badge-label">সুরক্ষিত এডমিন প্যানেল</span>
+          <h2 class="admin-title">রক্তদাতা পরিচালনা ও অনুমোদন ড্যাশবোর্ড</h2>
+        </div>
+        <div class="admin-top-actions">
+          <button class="btn-primary" onclick="openAddDonorModal()">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>ম্যানুয়াল ডোনার যোগ করুন</span>
+          </button>
+          <button class="btn-outline-danger" onclick="logoutAdmin()">এডমিন লগআউট</button>
+        </div>
+      </div>
+
+      <!-- Admin KPI Stats -->
+      <div class="admin-stats-row">
+        <div class="admin-stat-card">
+          <div class="admin-stat-title">পেন্ডিং রিভিউ (অনুমোদন প্রয়োজন)</div>
+          <div class="admin-stat-value text-amber" id="adminStatPending">০</div>
+          <div class="admin-stat-sub">নতুন ব্যবহারকারী যারা একাউন্ট খুলেছেন</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-title">অনুমোদিত সক্রিয় ডোনার</div>
+          <div class="admin-stat-value text-green" id="adminStatApproved">০</div>
+          <div class="admin-stat-sub">সাধারণ সাইটে ক্লাউডে সক্রিয় আছে</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-title">বিশ্রামে আছেন (৯০ দিনের কাউন্টডাউন)</div>
+          <div class="admin-stat-value text-red" id="adminStatCooldown">০</div>
+          <div class="admin-stat-sub">বর্তমানে কল লক রয়েছে</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-title">সর্বমোট ক্লাউড ডোনার ডাটাবেস</div>
+          <div class="admin-stat-value text-blue" id="adminStatTotal">০</div>
+          <div class="admin-stat-sub">ম্যানুয়াল + সেলফ-রেজিস্ট্রেশন</div>
+        </div>
+      </div>
+
+      <!-- Pending Approval Table Section -->
+      <div class="admin-table-card">
+        <div class="card-table-header">
+          <div>
+            <h3 class="table-card-title">নতুন রেজিস্ট্রেশন রিভিউ (পেন্ডিং তালিকা)</h3>
+            <p class="table-card-subtitle">ডোনাররা নিজে থেকে একাউন্ট করলে ফায়ারবেসে জমা হবে। আপনি এপ্রুভ করলেই তারা সাধারণ তালিকায় যোগ হবে।</p>
+          </div>
+          <span class="badge-pending-counter" id="tablePendingCount">০ জন পেন্ডিং</span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ডোনারের নাম</th>
+                <th>রক্তের গ্রুপ</th>
+                <th>ফোন নম্বর</th>
+                <th>জেলা ও এলাকা</th>
+                <th>রেজিস্ট্রেশনের তারিখ</th>
+                <th>স্ট্যাটাস</th>
+                <th style="text-align: right;">অ্যাকশন</th>
+              </tr>
+            </thead>
+            <tbody id="pendingDonorsTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- All Donors Management Table Section -->
+      <div class="admin-table-card">
+        <div class="card-table-header">
+          <div>
+            <h3 class="table-card-title">সকল অনুমোদিত রক্তদাতা (ক্লাউড ডাটাবেস)</h3>
+            <p class="table-card-subtitle">ম্যানুয়ালি যোগ করা এবং অনুমোদিত সকল রক্তদাতাদের সম্পূর্ণ তালিকা ও নিয়ন্ত্রণ</p>
+          </div>
+          <div class="admin-table-search">
+            <input type="text" id="adminSearchInput" placeholder="নাম, রক্তের গ্রুপ বা জেলা দিয়ে খুঁজুন..." oninput="filterAdminTable()">
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>নাম</th>
+                <th>গ্রুপ</th>
+                <th>ফোন</th>
+                <th>জেলা</th>
+                <th>সর্বশেষ রক্তদান</th>
+                <th>৯০ দিনের অবস্থা</th>
+                <th style="text-align: right;">নিয়ন্ত্রণ</th>
+              </tr>
+            </thead>
+            <tbody id="approvedDonorsTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODALS -->
+
+  <!-- FIREBASE CONFIGURATION MODAL -->
+  <div id="firebaseModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">🔥 ফায়ারবেস ক্লাউড কানেকশন সেটিংস</h3>
+          <p class="modal-subtitle">আপনার ফায়ারবেস প্রজেক্টের কীগুলো এখানে বসিয়ে সেভ করুন</p>
+        </div>
+        <button class="modal-close" onclick="closeModal('firebaseModal')">&times;</button>
+      </div>
+
+      <div class="firebase-quick-guide">
+        <h4>কীভাবে ফায়ারবেস কী পাবেন? (মাত্র ২ মিনিট)</h4>
+        <ol>
+          <li><a href="https://console.firebase.google.com/" target="_blank">console.firebase.google.com</a> এ যান এবং <strong>Create Project</strong> করুন।</li>
+          <li><strong>Firestore Database</strong> তৈরি করুন (Start in test mode সিলেক্ট করুন)।</li>
+          <li>Project Settings > General > "Web App" (<code>&lt;/&gt;</code>) থেকে নিচের মানগুলো কপি করে পেস্ট করুন।</li>
+        </ol>
+      </div>
+
+      <form id="firebaseConfigForm" onsubmit="handleSaveFirebaseConfig(event)">
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="fbApiKey">API Key *</label>
+            <input type="text" id="fbApiKey" required placeholder="AIzaSy...">
+          </div>
+          <div class="form-group">
+            <label for="fbProjectId">Project ID *</label>
+            <input type="text" id="fbProjectId" required placeholder="blood-donor-xxxx">
+          </div>
+          <div class="form-group">
+            <label for="fbAuthDomain">Auth Domain</label>
+            <input type="text" id="fbAuthDomain" placeholder="blood-donor-xxxx.firebaseapp.com">
+          </div>
+          <div class="form-group">
+            <label for="fbStorageBucket">Storage Bucket</label>
+            <input type="text" id="fbStorageBucket" placeholder="blood-donor-xxxx.appspot.com">
+          </div>
+          <div class="form-group">
+            <label for="fbAppId">App ID</label>
+            <input type="text" id="fbAppId" placeholder="1:xxxxxx:web:xxxxxx">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="handleClearFirebaseConfig()">রিসেট করুন</button>
+          <button type="submit" class="btn-primary">ফায়ারবেস সেভ করুন ও রিলোড দিন</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- DONOR REGISTRATION MODAL -->
+  <div id="registerModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">রক্তদাতা হিসেবে রেজিস্ট্রেশন করুন</h3>
+          <p class="modal-subtitle">রেজিস্ট্রেশন শেষে আপনার একাউন্টটি এডমিন রিভিউতে যাবে</p>
+        </div>
+        <button class="modal-close" onclick="closeModal('registerModal')">&times;</button>
+      </div>
+
+      <form id="donorRegisterForm" onsubmit="handleDonorRegister(event)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="regName">আপনার পূর্ণ নাম *</label>
+            <input type="text" id="regName" required placeholder="উদাঃ মোঃ নাজমুল হাসান">
+          </div>
+
+          <div class="form-group">
+            <label for="regBloodGroup">রক্তের গ্রুপ *</label>
+            <select id="regBloodGroup" required>
+              <option value="">গ্রুপ নির্বাচন করুন</option>
+              <option value="A+">A+ (এ পজিটিভ)</option>
+              <option value="A-">A- (এ নেগেটিভ)</option>
+              <option value="B+">B+ (বি পজিটিভ)</option>
+              <option value="B-">B- (বি নেগেটিভ)</option>
+              <option value="AB+">AB+ (এবি পজিটিভ)</option>
+              <option value="AB-">AB- (এবি নেগেটিভ)</option>
+              <option value="O+">O+ (ও পজিটিভ)</option>
+              <option value="O-">O- (ও নেগেটিভ)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="regPhone">মোবাইল নম্বর (১১ ডিজিট) *</label>
+            <input type="tel" id="regPhone" required pattern="01[3-9][0-9]{8}" placeholder="017XXXXXXXX">
+            <small class="field-hint">রোগীর স্বজনরা এই নম্বরে কল করবেন (৯০ দিন বিশ্রামের সময় ছাড়া)</small>
+          </div>
+
+          <div class="form-group">
+            <label for="regDistrict">জেলা *</label>
+            <select id="regDistrict" required>
+              <option value="">জেলা নির্বাচন করুন</option>
+              <option value="ঢাকা">ঢাকা</option>
+              <option value="চট্টগ্রাম">চট্টগ্রাম</option>
+              <option value="সিলেট">সিলেট</option>
+              <option value="রাজশাহী">রাজশাহী</option>
+              <option value="খুলনা">খুলনা</option>
+              <option value="বরিশাল">বরিশাল</option>
+              <option value="রংপুর">রংপুর</option>
+              <option value="ময়মনসিংহ">ময়মনসিংহ</option>
+              <option value="কুমিল্লা">কুমিল্লা</option>
+              <option value="বগুড়া">বগুড়া</option>
+            </select>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="regArea">উপজেলা / এলাকা / বর্তমান ঠিকানা *</label>
+            <input type="text" id="regArea" required placeholder="উদাঃ ধানমন্ডি, বাড্ডা, অথবা সদর">
+          </div>
+
+          <div class="form-group">
+            <label for="regLastDonation">সর্বশেষ রক্তদানের তারিখ (যদি দিয়ে থাকেন)</label>
+            <input type="date" id="regLastDonation">
+            <small class="field-hint">যদি ৯০ দিনের মধ্যে রক্ত দিয়ে থাকেন তবে এটি পূরণ করুন</small>
+          </div>
+
+          <div class="form-group">
+            <label for="regPassword">পাসওয়ার্ড তৈরি করুন *</label>
+            <input type="password" id="regPassword" required minlength="4" placeholder="কমপক্ষে ৪ অক্ষরের পাসওয়ার্ড">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('registerModal')">বাতিল</button>
+          <button type="submit" class="btn-primary">রেজিস্ট্রেশন সম্পন্ন করুন</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- DONOR LOGIN MODAL -->
+  <div id="donorLoginModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">ডোনার লগইন</h3>
+          <p class="modal-subtitle">আপনার প্রোফাইল ও রক্তদানের হিসেব নিয়ন্ত্রণ করতে লগইন করুন</p>
+        </div>
+        <button class="modal-close" onclick="closeModal('donorLoginModal')">&times;</button>
+      </div>
+
+      <form id="donorLoginForm" onsubmit="handleDonorLogin(event)">
+        <div class="form-group">
+          <label for="loginPhone">মোবাইল নম্বর</label>
+          <input type="tel" id="loginPhone" required placeholder="017XXXXXXXX">
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">পাসওয়ার্ড</label>
+          <input type="password" id="loginPassword" required placeholder="আপনার পাসওয়ার্ড দিন">
+        </div>
+
+        <div class="quick-demo-tips">
+          <small>💡 টেস্ট ডোনার লগইন: <strong>01711000001</strong> (পাসওয়ার্ড: <strong>1234</strong>)</small>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="openRegisterFromLogin()">নতুন একাউন্ট খুলুন</button>
+          <button type="submit" class="btn-primary">লগইন করুন</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADMIN LOGIN MODAL -->
+  <div id="adminLoginModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">এডমিন প্যানেলে প্রবেশ</h3>
+          <p class="modal-subtitle">শুধুমাত্র সাইট অ্যাডমিনের জন্য সুরক্ষিত এলাকা</p>
+        </div>
+        <button class="modal-close" onclick="closeModal('adminLoginModal')">&times;</button>
+      </div>
+
+      <form id="adminLoginForm" onsubmit="handleAdminLogin(event)">
+        <div class="form-group">
+          <label for="adminUsername">এডমিন ইউজারনেম</label>
+          <input type="text" id="adminUsername" required placeholder="admin" value="admin">
+        </div>
+        <div class="form-group">
+          <label for="adminPassword">এডমিন পাসওয়ার্ড</label>
+          <input type="password" id="adminPassword" required placeholder="admin123" value="admin123">
+        </div>
+        <div class="quick-demo-tips">
+          <small>🔑 ডিফল্ট ইউজারনেম: <strong>admin</strong> | পাসওয়ার্ড: <strong>admin123</strong></small>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('adminLoginModal')">বাতিল</button>
+          <button type="submit" class="btn-primary">প্রবেশ করুন</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADMIN MANUAL ADD DONOR MODAL -->
+  <div id="adminAddDonorModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">ম্যানুয়ালি ডোনার যোগ করুন (এডমিন)</h3>
+          <p class="modal-subtitle">এই ডোনারটি সরাসরি ফায়ারবেস ক্লাউডে সাধারণ তালিকায় যুক্ত হয়ে যাবে</p>
+        </div>
+        <button class="modal-close" onclick="closeModal('adminAddDonorModal')">&times;</button>
+      </div>
+
+      <form id="adminAddDonorForm" onsubmit="handleAdminAddDonor(event)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="manualName">ডোনারের নাম *</label>
+            <input type="text" id="manualName" required placeholder="উদাঃ মোঃ রফিকুল ইসলাম">
+          </div>
+
+          <div class="form-group">
+            <label for="manualBloodGroup">রক্তের গ্রুপ *</label>
+            <select id="manualBloodGroup" required>
+              <option value="">গ্রুপ নির্বাচন করুন</option>
+              <option value="A+">A+ (এ পজিティブ)</option>
+              <option value="A-">A- (এ নেগেটিভ)</option>
+              <option value="B+">B+ (বি পজিティブ)</option>
+              <option value="B-">B- (বি নেগেটিভ)</option>
+              <option value="AB+">AB+ (এবি পজিティブ)</option>
+              <option value="AB-">AB- (এবি নেগেটিভ)</option>
+              <option value="O+">O+ (ও পজিティブ)</option>
+              <option value="O-">O- (ও নেগেটিভ)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="manualPhone">মোবাইল নম্বর *</label>
+            <input type="tel" id="manualPhone" required pattern="01[3-9][0-9]{8}" placeholder="018XXXXXXXX">
+          </div>
+
+          <div class="form-group">
+            <label for="manualDistrict">জেলা *</label>
+            <select id="manualDistrict" required>
+              <option value="">জেলা নির্বাচন করুন</option>
+              <option value="ঢাকা">ঢাকা</option>
+              <option value="চট্টগ্রাম">চট্টগ্রাম</option>
+              <option value="সিলেট">সিলেট</option>
+              <option value="রাজশাহী">রাজশাহী</option>
+              <option value="খুলনা">খুলনা</option>
+              <option value="বরিশাল">বরিশাল</option>
+              <option value="রংপুর">রংপুর</option>
+              <option value="ময়মনসিংহ">ময়মনসিংহ</option>
+              <option value="কুমিল্লা">কুমিল্লা</option>
+              <option value="বগুড়া">বগুড়া</option>
+            </select>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="manualArea">উপজেলা / এলাকা *</label>
+            <input type="text" id="manualArea" required placeholder="উদাঃ গুলশান, বা হালিশহর">
+          </div>
+
+          <div class="form-group">
+            <label for="manualStatus">বর্তমান অবস্থা *</label>
+            <select id="manualStatus" onchange="toggleManualDonationDateInput()">
+              <option value="AVAILABLE">প্রস্তুত (রক্ত দিতে পারবে & কল খোলা)</option>
+              <option value="COOLDOWN">বিশ্রামে আছেন (৯০ দিনের কাউন্টডাউন চালু)</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="manualDateGroup" style="display:none;">
+            <label for="manualLastDonation">রক্তদানের তারিখ</label>
+            <input type="date" id="manualLastDonation">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('adminAddDonorModal')">বাতিল</button>
+          <button type="submit" class="btn-primary">ডোনার যুক্ত করুন</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- CONFIRMATION MODAL: I DONATED BLOOD -->
+  <div id="confirmDonatedModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card modal-card-sm text-center">
+      <div class="modal-blood-drop">🩸</div>
+      <h3 class="modal-title">রক্তদান নিশ্চিত করুন</h3>
+      <p class="modal-desc">
+        আপনি কি নিশ্চিত যে আজ রক্ত দিয়েছেন? এটি নিশ্চিত করলে ফায়ারবেস ক্লাউডে আপনার একাউন্টে <strong>৯০ দিনের কাউন্টডাউন</strong> শুরু হবে এবং আগামী ৯০ দিন সাধারণ সাইটে আপনার <strong>কল বাটন লক থাকবে</strong>।
+      </p>
+
+      <div class="modal-footer justify-center">
+        <button class="btn-secondary" onclick="closeModal('confirmDonatedModal')">না, ফিরে যাই</button>
+        <button class="btn-danger-confirm" onclick="executeMarkDonated()">হ্যাঁ, রক্ত দিয়েছি</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <div class="logo-icon small">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
+        </div>
+        <span>ব্লাড সেবা - ফায়ারবেস ক্লাউড ডাটাবেস চালিত</span>
+      </div>
+      <div class="footer-copy">
+        ক্লাউড সিঙ্ক্রোনাইজেশন • ৯০ দিনের স্বাস্থ্য সুরক্ষা কাউন্টডাউন • ভেরিফাইড রক্তদাতা
+      </div>
+    </div>
+  </footer>
+
+  <!-- Script as ES Module for Firebase compatibility and Vite dev server -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
