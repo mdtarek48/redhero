@@ -16,6 +16,23 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+
+  <!-- Immediate PWA Prompt Capture -->
+  <script>
+    window.deferredInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      window.deferredInstallPrompt = e;
+      console.log('📱 PWA beforeinstallprompt captured!');
+    });
+    window.addEventListener('appinstalled', () => {
+      window.deferredInstallPrompt = null;
+      console.log('🎉 PWA app installed to home screen!');
+    });
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(console.warn);
+    }
+  </script>
 </head>
 <body>
 
@@ -702,54 +719,6 @@
           <button type="submit" class="btn-primary">এডমিন যুক্ত করুন</button>
         </div>
       </form>
-    </div>
-  </div>
-
-  <!-- PWA INSTALL GUIDE MODAL -->
-  <div id="installAppModal" class="modal-backdrop" style="display:none;">
-    <div class="modal-card">
-      <div class="modal-header">
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <img src="/icon-192.png" alt="App Icon" style="width: 44px; height: 44px; border-radius: 10px; box-shadow: var(--shadow-sm); object-fit: cover;">
-          <div>
-            <h3 class="modal-title">অ্যাপ ডাউনলোড ও ইনস্টল</h3>
-            <p class="modal-subtitle">ব্লাড সেবা অ্যাপ সরাসরি আপনার ডিভাইসে ইনস্টল করে নিন</p>
-          </div>
-        </div>
-        <button class="modal-close" onclick="closeModal('installAppModal')">&times;</button>
-      </div>
-
-      <div class="install-guide-content">
-        <div class="install-card-step">
-          <div class="step-icon">📱</div>
-          <div class="step-text">
-            <strong>অ্যান্ড্রয়েড ফোন (Chrome ব্রাউজার):</strong>
-            <p>ব্রাউজারের উপরের ডানপাশের <strong>তিনটি ডট (⋮)</strong> মেন্যুতে চাপ দিয়ে <strong>"Install app"</strong> অথবা <strong>"Add to Home screen"</strong> সিলেক্ট করুন।</p>
-          </div>
-        </div>
-
-        <div class="install-card-step">
-          <div class="step-icon">🍏</div>
-          <div class="step-text">
-            <strong>আইফোন (iPhone / Safari):</strong>
-            <p>Safari ব্রাউজারের নিচের <strong>Share</strong> (শেয়ার) আইকনে ট্যাপ করে <strong>"Add to Home Screen"</strong> অপশনে চাপ দিন।</p>
-          </div>
-        </div>
-
-        <div class="install-card-step">
-          <div class="step-icon">💻</div>
-          <div class="step-text">
-            <strong>কম্পিউটার বা ল্যাপটপ:</strong>
-            <p>ব্রাউজারের অ্যাড্রেস বারের ডানপাশে থাকা <strong>Install আইকন (⊕)</strong>-এ ক্লিক করলেই অ্যাপ ওপেন হবে।</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal-footer justify-center">
-        <button type="button" class="btn-primary" onclick="triggerPwaPromptOrClose()">
-          <span>ঠিক আছে, বুঝেছি</span>
-        </button>
-      </div>
     </div>
   </div>
 

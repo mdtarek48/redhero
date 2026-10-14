@@ -1353,51 +1353,45 @@ window.alertLockedDonor = alertLockedDonor;
 window.recordCallAttempt = recordCallAttempt;
 window.filterAdminTable = filterAdminTable;
 window.handleInstallApp = handleInstallApp;
-window.triggerPwaPromptOrClose = triggerPwaPromptOrClose;
 
 // ==========================================================================
-// PWA Service Worker & App Installation
+// PWA Service Worker & Direct App Installation
 // ==========================================================================
-let deferredInstallPrompt = null;
-
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then((reg) => console.log('✅ ServiceWorker registered with scope:', reg.scope))
-      .catch((err) => console.warn('ServiceWorker registration error:', err));
-  });
+  navigator.serviceWorker.register('/sw.js')
+    .then((reg) => console.log('✅ ServiceWorker registered:', reg.scope))
+    .catch((err) => console.warn('ServiceWorker registration error:', err));
 }
-
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  console.log('📱 PWA beforeinstallprompt captured!');
-});
 
 window.addEventListener('appinstalled', () => {
-  deferredInstallPrompt = null;
-  showToast('🎉 অ্যাপ সফলভাবে আপনার ডিভাইসে ইনস্টল হয়েছে!', 'success');
+  window.deferredInstallPrompt = null;
+  showToast('🎉 অ্যাপ সফলভাবে আপনার মোবাইলের হোম স্ক্রিনে যুক্ত হয়েছে!', 'success');
 });
 
-function handleInstallApp() {
-  if (deferredInstallPrompt) {
-    deferredInstallPrompt.prompt();
-    deferredInstallPrompt.userChoice.then((choiceResult) => {
-      if (choiceResult.outcome === 'accepted') {
-        showToast('অ্যাপ ইনস্টল করা হচ্ছে...', 'info');
-      }
-      deferredInstallPrompt = null;
-    });
-  } else {
-    // Show step-by-step installation guide modal
-    openModal('installAppModal');
+async function handleInstallApp() {
+  // Check if already running as installed standalone app
+  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+    showToast('ব্লাড সেবা অ্যাপটি ইতিমধ্যে আপনার ফোনে ইনস্টল রয়েছে!', 'success');
+    return;
   }
-}
 
-function triggerPwaPromptOrClose() {
-  closeModal('installAppModal');
-  if (deferredInstallPrompt) {
-    deferredInstallPrompt.prompt();
+  const promptEvent = window.deferredInstallPrompt;
+
+  if (promptEvent) {
+    promptEvent.prompt();
+    try {
+      const choice = await promptEvent.userChoice;
+      if (choice && choice.outcome === 'accepted') {
+        showToast('অ্যাপটি ইনস্টল হয়ে আপনার হোম স্ক্রিনে যুক্ত হচ্ছে...', 'success');
+        window.deferredInstallPrompt = null;
+      }
+    } catch (e) {
+      console.warn('User choice error:', e);
+    }
+    return;
   }
+
+  // If event not ready yet
+  showToast('অ্যাপ ইনস্টল প্রম্পট তৈরি হচ্ছে... ব্রাউজারের "Install" বাটনে চাপুন।', 'info');
 }
 
