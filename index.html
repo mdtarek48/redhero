@@ -33,15 +33,22 @@
           <span>ডোনার খুঁজুন</span>
         </button>
 
-        <button class="nav-btn" id="navBtnDonorPortal" onclick="openDonorPortalModal()">
+        <!-- Dynamic Portal Button (Shows only when logged in as Donor or Admin) -->
+        <button class="nav-btn" id="navBtnPortal" onclick="openCurrentPortal()" style="display:none;">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-          <span id="donorNavLabel">ডোনার ড্যাশবোর্ড</span>
+          <span id="portalNavLabel">ড্যাশবোর্ড</span>
+          <span class="pending-count-pill" id="pendingPillCount" style="display:none;">০</span>
         </button>
 
-        <button class="nav-btn admin-badge-btn" id="navBtnAdmin" onclick="openAdminModal()">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-          <span>এডমিন প্যানেল</span>
-          <span class="pending-count-pill" id="pendingPillCount" style="display:none;">০</span>
+        <!-- Unified Login Button (Shows when logged out) -->
+        <button class="nav-btn" id="navBtnLogin" onclick="openUnifiedLoginModal()">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+          <span>লগইন</span>
+        </button>
+
+        <!-- Logout Button (Shows when logged in) -->
+        <button class="btn-outline-danger" id="navBtnLogout" onclick="handleLogout()" style="display:none;">
+          <span>লগআউট</span>
         </button>
 
         <button class="btn-primary-accent" onclick="openRegisterModal()">
@@ -194,7 +201,7 @@
           </div>
         </div>
         <div class="dashboard-actions">
-          <button class="btn-outline-danger" onclick="logoutDonor()">লগআউট করুন</button>
+          <button class="btn-outline-danger" onclick="handleLogout()">লগআউট করুন</button>
         </div>
       </div>
 
@@ -303,7 +310,7 @@
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             <span>ম্যানুয়াল ডোনার যোগ করুন</span>
           </button>
-          <button class="btn-outline-danger" onclick="logoutAdmin()">এডমিন লগআউট</button>
+          <button class="btn-outline-danger" onclick="handleLogout()">এডমিন লগআউট</button>
         </div>
       </div>
 
@@ -530,21 +537,21 @@
     </div>
   </div>
 
-  <!-- DONOR LOGIN MODAL -->
-  <div id="donorLoginModal" class="modal-backdrop" style="display:none;">
-    <div class="modal-card">
+  <!-- UNIFIED LOGIN MODAL (One single login for both Admin and Donors) -->
+  <div id="unifiedLoginModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card modal-card-sm">
       <div class="modal-header">
         <div>
-          <h3 class="modal-title">ডোনার লগইন</h3>
-          <p class="modal-subtitle">আপনার প্রোফাইল ও রক্তদানের হিসেব নিয়ন্ত্রণ করতে লগইন করুন</p>
+          <h3 class="modal-title">একাউন্টে লগইন করুন</h3>
+          <p class="modal-subtitle">মোবাইল নম্বর ও পাসওয়ার্ড দিয়ে প্রবেশ করুন</p>
         </div>
-        <button class="modal-close" onclick="closeModal('donorLoginModal')">&times;</button>
+        <button class="modal-close" onclick="closeModal('unifiedLoginModal')">&times;</button>
       </div>
 
-      <form id="donorLoginForm" onsubmit="handleDonorLogin(event)">
+      <form id="unifiedLoginForm" onsubmit="handleUnifiedLogin(event)">
         <div class="form-group">
           <label for="loginPhone">মোবাইল নম্বর</label>
-          <input type="tel" id="loginPhone" required placeholder="017XXXXXXXX">
+          <input type="text" id="loginPhone" required placeholder="017XXXXXXXX">
         </div>
         <div class="form-group">
           <label for="loginPassword">পাসওয়ার্ড</label>
@@ -552,43 +559,14 @@
         </div>
 
         <div class="quick-demo-tips">
-          <small>💡 টেস্ট ডোনার লগইন: <strong>01711000001</strong> (পাসওয়ার্ড: <strong>1234</strong>)</small>
+          <div style="font-weight: 600; margin-bottom: 0.35rem; color: var(--text-main);">টেস্ট লগইন তথ্য:</div>
+          <div style="margin-bottom: 0.25rem;">🛡️ <strong>এডমিন:</strong> মোবাইল <code>01700000000</code> | পাসওয়ার্ড <code>admin123</code></div>
+          <div>🩸 <strong>ডোনার:</strong> মোবাইল <code>01711000001</code> | পাসওয়ার্ড <code>1234</code></div>
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn-secondary" onclick="openRegisterFromLogin()">নতুন একাউন্ট খুলুন</button>
+          <button type="button" class="btn-secondary" onclick="openRegisterFromLogin()">নতুন ডোনার রেজিস্ট্রেশন</button>
           <button type="submit" class="btn-primary">লগইন করুন</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- ADMIN LOGIN MODAL -->
-  <div id="adminLoginModal" class="modal-backdrop" style="display:none;">
-    <div class="modal-card">
-      <div class="modal-header">
-        <div>
-          <h3 class="modal-title">এডমিন প্যানেলে প্রবেশ</h3>
-          <p class="modal-subtitle">শুধুমাত্র সাইট অ্যাডমিনের জন্য সুরক্ষিত এলাকা</p>
-        </div>
-        <button class="modal-close" onclick="closeModal('adminLoginModal')">&times;</button>
-      </div>
-
-      <form id="adminLoginForm" onsubmit="handleAdminLogin(event)">
-        <div class="form-group">
-          <label for="adminUsername">এডমিন ইউজারনেম</label>
-          <input type="text" id="adminUsername" required placeholder="admin" value="admin">
-        </div>
-        <div class="form-group">
-          <label for="adminPassword">এডমিন পাসওয়ার্ড</label>
-          <input type="password" id="adminPassword" required placeholder="admin123" value="admin123">
-        </div>
-        <div class="quick-demo-tips">
-          <small>🔑 ডিফল্ট ইউজারনেম: <strong>admin</strong> | পাসওয়ার্ড: <strong>admin123</strong></small>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn-secondary" onclick="closeModal('adminLoginModal')">বাতিল</button>
-          <button type="submit" class="btn-primary">প্রবেশ করুন</button>
         </div>
       </form>
     </div>

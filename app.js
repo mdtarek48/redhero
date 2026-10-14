@@ -245,20 +245,57 @@ function onDonorsUpdated() {
   }
 }
 
+const STORAGE_AUTH_SESSION_KEY = 'blood_seva_active_session_v2';
+
+function updateNavbarAuth() {
+  const btnLogin = document.getElementById('navBtnLogin');
+  const btnPortal = document.getElementById('navBtnPortal');
+  const portalLabel = document.getElementById('portalNavLabel');
+  const btnLogout = document.getElementById('navBtnLogout');
+
+  if (state.isAdmin) {
+    if (btnLogin) btnLogin.style.display = 'none';
+    if (btnPortal) {
+      btnPortal.style.display = 'inline-flex';
+      btnPortal.classList.toggle('active', state.currentView === 'admin');
+    }
+    if (portalLabel) portalLabel.textContent = 'এডমিন প্যানেল';
+    if (btnLogout) btnLogout.style.display = 'inline-flex';
+  } else if (state.currentDonor) {
+    if (btnLogin) btnLogin.style.display = 'none';
+    if (btnPortal) {
+      btnPortal.style.display = 'inline-flex';
+      btnPortal.classList.toggle('active', state.currentView === 'donor');
+    }
+    if (portalLabel) portalLabel.textContent = state.currentDonor.name.split(' ')[0] + ' (ড্যাশবোর্ড)';
+    if (btnLogout) btnLogout.style.display = 'inline-flex';
+  } else {
+    if (btnLogin) btnLogin.style.display = 'inline-flex';
+    if (btnPortal) btnPortal.style.display = 'none';
+    if (btnLogout) btnLogout.style.display = 'none';
+  }
+}
+
 function restoreAuthSessions() {
-  const storedDonorAuth = localStorage.getItem(STORAGE_DONOR_AUTH_KEY);
-  if (storedDonorAuth) {
-    const found = state.donors.find(d => d.id === storedDonorAuth);
-    if (found) {
-      state.currentDonor = found;
-      document.getElementById('donorNavLabel').textContent = found.name.split(' ')[0] + ' (ড্যাশবোর্ড)';
+  const sessionRaw = localStorage.getItem(STORAGE_AUTH_SESSION_KEY);
+  if (sessionRaw) {
+    try {
+      const session = JSON.parse(sessionRaw);
+      if (session.role === 'ADMIN') {
+        state.isAdmin = true;
+        state.currentDonor = null;
+      } else if (session.role === 'DONOR' && session.id) {
+        const found = state.donors.find(d => d.id === session.id);
+        if (found) {
+          state.currentDonor = found;
+          state.isAdmin = false;
+        }
+      }
+    } catch (e) {
+      console.warn('Session parse error:', e);
     }
   }
-
-  const storedAdminAuth = localStorage.getItem(STORAGE_ADMIN_AUTH_KEY);
-  if (storedAdminAuth === 'true') {
-    state.isAdmin = true;
-  }
+  updateNavbarAuth();
 }
 
 // ==========================================================================
@@ -471,9 +508,9 @@ function switchView(viewName) {
   document.getElementById('donorDashboardView').style.display = viewName === 'donor' ? 'block' : 'none';
   document.getElementById('adminView').style.display = viewName === 'admin' ? 'block' : 'none';
 
-  document.getElementById('navBtnPublic').classList.toggle('active', viewName === 'public');
-  document.getElementById('navBtnDonorPortal').classList.toggle('active', viewName === 'donor');
-  document.getElementById('navBtnAdmin').classList.toggle('active', viewName === 'admin');
+  const navPublic = document.getElementById('navBtnPublic');
+  if (navPublic) navPublic.classList.toggle('active', viewName === 'public');
+  updateNavbarAuth();
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -486,14 +523,20 @@ function switchView(viewName) {
 }
 
 // ==========================================================================
-// Donor Portal & Registration (Cloud-Integrated)
+// Unified Portal & Login System (Single Login for Admin & Donors)
 // ==========================================================================
-function openDonorPortalModal() {
-  if (state.currentDonor) {
+function openUnifiedLoginModal() {
+  openModal('unifiedLoginModal');
+}
+
+function openCurrentPortal() {
+  if (state.isAdmin) {
+    switchView('admin');
+  } else if (state.currentDonor) {
     switchView('donor');
     renderDonorDashboard();
   } else {
-    openModal('donorLoginModal');
+    openUnifiedLoginModal();
   }
 }
 
@@ -502,8 +545,61 @@ function openRegisterModal() {
 }
 
 function openRegisterFromLogin() {
-  closeModal('donorLoginModal');
+  closeModal('unifiedLoginModal');
   openModal('registerModal');
+}
+
+function handleUnifiedLogin(e) {
+  e.preventDefault();
+  const phone = document.getElementById('loginPhone').value.trim();
+  const password = document.getElementById('loginPassword').value.trim();
+
+  // 1. Check if Admin credentials
+  const isAdminLogin = (phone === '01700000000' || phone.toLowerCase() === 'admin') && password === 'admin123';
+  if (isAdminLogin) {
+    state.isAdmin = true;
+    state.currentDonor = null;
+    localStorage.setItem(STORAGE_AUTH_SESSION_KEY, JSON.stringify({ role: 'ADMIN' }));
+
+    closeModal('unifiedLoginModal');
+    const form = document.getElementById('unifiedLoginForm');
+    if (form) form.reset();
+
+    updateNavbarAuth();
+    switchView('admin');
+    showToast('স্বাগতম এডমিন! এডমিন প্যানেলে সফলভাবে প্রবেশ করেছেন।', 'success');
+    return;
+  }
+
+  // 2. Check if Donor credentials
+  const foundDonor = state.donors.find(d => d.phone === phone && d.password === password);
+  if (foundDonor) {
+    state.currentDonor = foundDonor;
+    state.isAdmin = false;
+    localStorage.setItem(STORAGE_AUTH_SESSION_KEY, JSON.stringify({ role: 'DONOR', id: foundDonor.id }));
+
+    closeModal('unifiedLoginModal');
+    const form = document.getElementById('unifiedLoginForm');
+    if (form) form.reset();
+
+    updateNavbarAuth();
+    switchView('donor');
+    renderDonorDashboard();
+    showToast(`স্বাগতম, ${foundDonor.name}! আপনার ড্যাশবোর্ডে প্রবেশ করেছেন।`, 'success');
+    return;
+  }
+
+  // 3. Credentials did not match
+  alert('ভুল মোবাইল নম্বর অথবা পাসওয়ার্ড! অনুগ্রহ করে সঠিক তথ্য দিন।\n\n(এডমিন: 01700000000 / admin123 | ডোনার: 01711000001 / 1234)');
+}
+
+function handleLogout() {
+  state.isAdmin = false;
+  state.currentDonor = null;
+  localStorage.removeItem(STORAGE_AUTH_SESSION_KEY);
+  updateNavbarAuth();
+  switchView('public');
+  showToast('সফলভাবে লগআউট হয়েছেন।', 'info');
 }
 
 async function handleDonorRegister(e) {
@@ -563,8 +659,9 @@ async function handleDonorRegister(e) {
     document.getElementById('donorRegisterForm').reset();
 
     state.currentDonor = newDonor;
-    localStorage.setItem(STORAGE_DONOR_AUTH_KEY, newDonor.id);
-    document.getElementById('donorNavLabel').textContent = newDonor.name.split(' ')[0] + ' (ড্যাশবোর্ড)';
+    state.isAdmin = false;
+    localStorage.setItem(STORAGE_AUTH_SESSION_KEY, JSON.stringify({ role: 'DONOR', id: newDonor.id }));
+    updateNavbarAuth();
 
     switchView('donor');
     renderDonorDashboard();
@@ -573,37 +670,6 @@ async function handleDonorRegister(e) {
     console.error('Registration failed:', err);
     alert('রেজিস্ট্রেশন করতে সমস্যা হয়েছে: ' + err.message);
   }
-}
-
-function handleDonorLogin(e) {
-  e.preventDefault();
-  const phone = document.getElementById('loginPhone').value.trim();
-  const password = document.getElementById('loginPassword').value;
-
-  const found = state.donors.find(d => d.phone === phone && d.password === password);
-  if (!found) {
-    alert('ভুল মোবাইল নম্বর অথবা পাসওয়ার্ড! অনুগ্রহ করে সঠিক তথ্য দিন।');
-    return;
-  }
-
-  state.currentDonor = found;
-  localStorage.setItem(STORAGE_DONOR_AUTH_KEY, found.id);
-  document.getElementById('donorNavLabel').textContent = found.name.split(' ')[0] + ' (ড্যাশবোর্ড)';
-
-  closeModal('donorLoginModal');
-  document.getElementById('donorLoginForm').reset();
-
-  switchView('donor');
-  renderDonorDashboard();
-  showToast(`স্বাগতম, ${found.name}!`, 'success');
-}
-
-function logoutDonor() {
-  state.currentDonor = null;
-  localStorage.removeItem(STORAGE_DONOR_AUTH_KEY);
-  document.getElementById('donorNavLabel').textContent = 'ডোনার ড্যাশবোর্ড';
-  switchView('public');
-  showToast('ডোনার একাউন্ট থেকে সফলভাবে লগআউট হয়েছেন।', 'info');
 }
 
 function renderDonorDashboard() {
@@ -707,37 +773,6 @@ async function executeMarkDonated() {
 // ==========================================================================
 // Admin Panel Logic (Cloud-Integrated)
 // ==========================================================================
-function openAdminModal() {
-  if (state.isAdmin) {
-    switchView('admin');
-  } else {
-    openModal('adminLoginModal');
-  }
-}
-
-function handleAdminLogin(e) {
-  e.preventDefault();
-  const u = document.getElementById('adminUsername').value.trim();
-  const p = document.getElementById('adminPassword').value.trim();
-
-  if (u === 'admin' && p === 'admin123') {
-    state.isAdmin = true;
-    localStorage.setItem(STORAGE_ADMIN_AUTH_KEY, 'true');
-    closeModal('adminLoginModal');
-    switchView('admin');
-    showToast('এডমিন প্যানেলে সফলভাবে প্রবেশ করেছেন', 'success');
-  } else {
-    alert('ভুল এডমিন ইউজারনেম বা পাসওয়ার্ড! (ডিফল্ট: admin / admin123)');
-  }
-}
-
-function logoutAdmin() {
-  state.isAdmin = false;
-  localStorage.removeItem(STORAGE_ADMIN_AUTH_KEY);
-  switchView('public');
-  showToast('এডমিন প্যানেল থেকে লগআউট হয়েছেন', 'info');
-}
-
 function renderAdminPanel() {
   const pending = state.donors.filter(d => d.approvalStatus === 'PENDING');
   const approved = state.donors.filter(d => d.approvalStatus === 'APPROVED');
@@ -1058,17 +1093,15 @@ function showToast(message, type = 'info') {
 window.switchView = switchView;
 window.applyFilters = applyFilters;
 window.resetFilters = resetFilters;
-window.openDonorPortalModal = openDonorPortalModal;
+window.openUnifiedLoginModal = openUnifiedLoginModal;
+window.openCurrentPortal = openCurrentPortal;
+window.handleUnifiedLogin = handleUnifiedLogin;
+window.handleLogout = handleLogout;
 window.openRegisterModal = openRegisterModal;
 window.openRegisterFromLogin = openRegisterFromLogin;
 window.handleDonorRegister = handleDonorRegister;
-window.handleDonorLogin = handleDonorLogin;
-window.logoutDonor = logoutDonor;
 window.confirmMarkDonated = confirmMarkDonated;
 window.executeMarkDonated = executeMarkDonated;
-window.openAdminModal = openAdminModal;
-window.handleAdminLogin = handleAdminLogin;
-window.logoutAdmin = logoutAdmin;
 window.adminApproveDonor = adminApproveDonor;
 window.adminRejectDonor = adminRejectDonor;
 window.adminToggleCooldown = adminToggleCooldown;
