@@ -1353,6 +1353,7 @@ window.alertLockedDonor = alertLockedDonor;
 window.recordCallAttempt = recordCallAttempt;
 window.filterAdminTable = filterAdminTable;
 window.handleInstallApp = handleInstallApp;
+window.executeAppInstall = executeAppInstall;
 
 // ==========================================================================
 // PWA Service Worker & Direct App Installation
@@ -1368,12 +1369,19 @@ window.addEventListener('appinstalled', () => {
   showToast('🎉 অ্যাপ সফলভাবে আপনার মোবাইলের হোম স্ক্রিনে যুক্ত হয়েছে!', 'success');
 });
 
-async function handleInstallApp() {
+function handleInstallApp() {
   // Check if already running as installed standalone app
   if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
     showToast('ব্লাড সেবা অ্যাপটি ইতিমধ্যে আপনার ফোনে ইনস্টল রয়েছে!', 'success');
     return;
   }
+
+  // Open the direct install confirmation modal
+  openModal('directInstallModal');
+}
+
+async function executeAppInstall() {
+  closeModal('directInstallModal');
 
   const promptEvent = window.deferredInstallPrompt;
 
@@ -1382,7 +1390,7 @@ async function handleInstallApp() {
     try {
       const choice = await promptEvent.userChoice;
       if (choice && choice.outcome === 'accepted') {
-        showToast('অ্যাপটি ইনস্টল হয়ে আপনার হোম স্ক্রিনে যুক্ত হচ্ছে...', 'success');
+        showToast('🎉 অ্যাপটি ইনস্টল হয়ে আপনার হোম স্ক্রিনে যুক্ত হচ্ছে...', 'success');
         window.deferredInstallPrompt = null;
       }
     } catch (e) {
@@ -1391,7 +1399,7 @@ async function handleInstallApp() {
     return;
   }
 
-  // If event not ready yet
-  showToast('অ্যাপ ইনস্টল প্রম্পট তৈরি হচ্ছে... ব্রাউজারের "Install" বাটনে চাপুন।', 'info');
+  showToast('ব্রাউজারের ইনস্টল ডায়ালগে "Install" চাপুন...', 'info');
 }
+
 

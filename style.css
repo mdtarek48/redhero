@@ -1521,7 +1521,21 @@ button, input, select, textarea {
   background: var(--blood-dark);
 }
 
-/* Install Guide Modal */
+/* Install Modal Elements */
+.install-app-icon-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.install-modal-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(220, 38, 38, 0.25);
+  object-fit: cover;
+}
 .install-guide-content {
   display: flex;
   flex-direction: column;

@@ -1,0 +1,40 @@
+{
+  "name": "ব্লাড সেবা - রক্তদান প্ল্যাটফর্ম",
+  "short_name": "ব্লাড সেবা",
+  "description": "জরুরি রক্তদাতা খুঁজুন এবং রক্তদান করুন। ফায়ারবেস ক্লাউড চালিত সহজ রক্তসেবা প্ল্যাটফর্ম।",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#dc2626",
+  "orientation": "portrait-primary",
+  "categories": ["medical", "health", "lifestyle"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

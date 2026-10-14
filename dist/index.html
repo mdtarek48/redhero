@@ -5,11 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>রক্তদান - জীবন বাঁচান | ফায়ারবেস ব্লাড ডোনার প্ল্যাটফর্ম</title>
   <meta name="description" content="জরুরি প্রয়োজনে ব্লাড ডোনার খুঁজুন এবং সরাসরি কল করুন। রক্তদাতাদের জন্য ৯০ দিনের অটোমেটিক কুলডাউন ও কল লকিং সুবিধা।">
+  <meta name="theme-color" content="#dc2626">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="ব্লাড সেবা">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="manifest" href="/manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script type="module" crossorigin src="/assets/index-C3ih0BuS.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-C8g-Wkvf.css">
+
+  <!-- Immediate PWA Prompt Capture -->
+  <script>
+    window.deferredInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      window.deferredInstallPrompt = e;
+      console.log('📱 PWA beforeinstallprompt captured!');
+    });
+    window.addEventListener('appinstalled', () => {
+      window.deferredInstallPrompt = null;
+      console.log('🎉 PWA app installed to home screen!');
+    });
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(console.warn);
+    }
+  </script>
+  <script type="module" crossorigin src="/assets/index-BpLoJr0E.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-oHx1ghSb.css">
 </head>
 <body>
 
@@ -24,7 +48,6 @@
         </div>
         <div class="logo-text">
           <span class="logo-title">ব্লাড সেবা</span>
-          <span class="logo-subtitle">ফায়ারবেস ক্লাউড চালিত ব্লাড ব্যাংক</span>
         </div>
       </div>
 
@@ -32,6 +55,16 @@
         <button class="nav-btn active" id="navBtnPublic" onclick="switchView('public')">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
           <span>ডোনার খুঁজুন</span>
+        </button>
+
+        <!-- PWA App Download Button -->
+        <button class="nav-btn btn-download-app" id="btnInstallApp" onclick="handleInstallApp()" title="মোবাইলে অ্যাপ ইনস্টল করুন">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>অ্যাপ ডাউনলোড</span>
         </button>
 
         <!-- Dynamic Portal Button (Shows only when logged in as Donor or Admin) -->
@@ -66,14 +99,10 @@
   <!-- MAIN VIEW: PUBLIC SEEKER VIEW (No Login Required) -->
   <main id="publicView" class="view-section">
     <!-- Hero Banner with stats and search -->
+    <!-- Hero Banner with search -->
     <section class="hero-section">
       <div class="hero-content">
-        <div class="hero-badge">
-          <span class="pulse-dot"></span>
-          <span>জরুরি প্রয়োজনে ডোনারদের সরাসরি ফ্রি কল করুন</span>
-        </div>
         <h1 class="hero-title">এক ব্যাগ রক্ত, একটি নতুন জীবন</h1>
-        <p class="hero-desc">লগিন ছাড়াই আপনার পছন্দের রক্তের গ্রুপ ও এলাকার ডোনারদের খুঁজুন। সম্প্রতি রক্তদানকারী ডোনারদের ৯০ দিন বিশ্রাম নিশ্চিতে তাদের কল সাময়িক লক রাখা হয়।</p>
 
         <!-- Search & Filter Card -->
         <div class="filter-card">
@@ -134,24 +163,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Quick Summary Bar -->
-        <div class="stats-strip">
-          <div class="stat-item">
-            <span class="stat-number" id="statReadyCount">০</span>
-            <span class="stat-label">রক্তদানে প্রস্তুত</span>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="stat-item">
-            <span class="stat-number" id="statCooldownCount">০</span>
-            <span class="stat-label">বিশ্রামে আছেন (৯০ দিন)</span>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="stat-item">
-            <span class="stat-number" id="statTotalApproved">০</span>
-            <span class="stat-label">অনুমোদিত মোট রক্তদাতা</span>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -162,10 +173,6 @@
           <div>
             <h2 class="section-title">অনুমোদিত রক্তদাতাদের তালিকা</h2>
             <p class="section-subtitle" id="donorCountNotice">বর্তমান ফিল্টারে ডোনার দেখানো হচ্ছে</p>
-          </div>
-          <div class="legend-box">
-            <div class="legend-item"><span class="legend-dot green"></span> প্রস্তুত (সরাসরি কল করুন)</div>
-            <div class="legend-item"><span class="legend-dot amber"></span> বিশ্রামে আছেন (কল লক)</div>
           </div>
         </div>
 
@@ -400,6 +407,37 @@
           </table>
         </div>
       </div>
+
+      <!-- Master Admin Section: Manage Admin Team -->
+      <div class="admin-table-card" id="masterAdminSection" style="display: none;">
+        <div class="card-table-header">
+          <div>
+            <h3 class="table-card-title">👑 এডমিন টিম পরিচালনা (মাস্টার এডমিন)</h3>
+            <p class="table-card-subtitle">নতুন এডমিন যুক্ত করুন অথবা যেকোনো এডমিন একাউন্ট রিমুভ করুন</p>
+          </div>
+          <button class="btn-primary" onclick="openAddAdminModal()">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>নতুন এডমিন যোগ করুন</span>
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>এডমিনের নাম</th>
+                <th>মোবাইল নম্বর (লগইন)</th>
+                <th>পাসওয়ার্ড</th>
+                <th>পদবী</th>
+                <th style="text-align: right;">অ্যাকশন</th>
+              </tr>
+            </thead>
+            <tbody id="adminTeamTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -549,20 +587,14 @@
         <button class="modal-close" onclick="closeModal('unifiedLoginModal')">&times;</button>
       </div>
 
-      <form id="unifiedLoginForm" onsubmit="handleUnifiedLogin(event)">
+      <form id="unifiedLoginForm" onsubmit="handleUnifiedLogin(event)" autocomplete="off">
         <div class="form-group">
           <label for="loginPhone">মোবাইল নম্বর</label>
-          <input type="text" id="loginPhone" required placeholder="017XXXXXXXX">
+          <input type="text" id="loginPhone" required placeholder="017XXXXXXXX" autocomplete="off" value="">
         </div>
         <div class="form-group">
           <label for="loginPassword">পাসওয়ার্ড</label>
-          <input type="password" id="loginPassword" required placeholder="আপনার পাসওয়ার্ড দিন">
-        </div>
-
-        <div class="quick-demo-tips">
-          <div style="font-weight: 600; margin-bottom: 0.35rem; color: var(--text-main);">টেস্ট লগইন তথ্য:</div>
-          <div style="margin-bottom: 0.25rem;">🛡️ <strong>এডমিন:</strong> মোবাইল <code>01700000000</code> | পাসওয়ার্ড <code>admin123</code></div>
-          <div>🩸 <strong>ডোনার:</strong> মোবাইল <code>01711000001</code> | পাসওয়ার্ড <code>1234</code></div>
+          <input type="password" id="loginPassword" required placeholder="আপনার পাসওয়ার্ড দিন" autocomplete="new-password" value="">
         </div>
 
         <div class="modal-footer">
@@ -652,6 +684,62 @@
           <button type="submit" class="btn-primary">ডোনার যুক্ত করুন</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ADD SUB-ADMIN MODAL (Master Admin Only) -->
+  <div id="addAdminModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">নতুন এডমিন যুক্ত করুন</h3>
+          <p class="modal-subtitle">নতুন এডমিনের নাম, মোবাইল নম্বর এবং লগইন পাসওয়ার্ড দিন</p>
+        </div>
+        <button class="modal-close" onclick="closeModal('addAdminModal')">&times;</button>
+      </div>
+
+      <form id="addAdminForm" onsubmit="handleCreateAdmin(event)" autocomplete="off">
+        <div class="form-group">
+          <label for="newAdminName">এডমিনের নাম *</label>
+          <input type="text" id="newAdminName" required placeholder="উদাঃ মোঃ নাজমুল ইসলাম" autocomplete="off">
+        </div>
+
+        <div class="form-group">
+          <label for="newAdminPhone">মোবাইল নম্বর (লগইন নম্বর) *</label>
+          <input type="tel" id="newAdminPhone" required pattern="01[3-9][0-9]{8}" placeholder="01XXXXXXXXX" autocomplete="off">
+          <small class="field-hint">এই নম্বর দিয়ে তিনি এডমিন প্যানেলে লগইন করবেন</small>
+        </div>
+
+        <div class="form-group">
+          <label for="newAdminPassword">লগইন পাসওয়ার্ড *</label>
+          <input type="text" id="newAdminPassword" required placeholder="পাসওয়ার্ড দিন" autocomplete="new-password">
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('addAdminModal')">বাতিল</button>
+          <button type="submit" class="btn-primary">এডমিন যুক্ত করুন</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- DIRECT APP INSTALL CONFIRMATION MODAL -->
+  <div id="directInstallModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card modal-card-sm text-center">
+      <div class="install-app-icon-wrap">
+        <img src="/icon-192.png" alt="ব্লাড সেবা" class="install-modal-icon">
+      </div>
+      <h3 class="modal-title" style="margin-top: 0.75rem;">ব্লাড সেবা অ্যাপ</h3>
+      <p class="modal-desc" style="margin: 0.5rem 0 1.5rem; color: #64748b; font-size: 0.95rem;">
+        সরাসরি আপনার মোবাইলের হোম স্ক্রিনে অ্যাপটি ইনস্টল করতে চান?
+      </p>
+      <div class="modal-footer justify-center" style="gap: 0.75rem;">
+        <button type="button" class="btn-secondary" onclick="closeModal('directInstallModal')">পরে করব</button>
+        <button type="button" class="btn-primary-accent" id="btnConfirmInstall" onclick="executeAppInstall()" style="padding: 0.7rem 1.8rem; font-size: 1rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span>ইনস্টল করুন</span>
+        </button>
+      </div>
     </div>
   </div>
 
