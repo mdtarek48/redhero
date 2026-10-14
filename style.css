@@ -366,7 +366,7 @@ button, input, select, textarea {
   font-weight: 700;
   color: var(--text-main);
   line-height: 1.25;
-  margin-bottom: 0.85rem;
+  margin-bottom: 1.75rem;
 }
 
 .hero-desc {
@@ -383,7 +383,7 @@ button, input, select, textarea {
   padding: 1.5rem;
   box-shadow: var(--shadow-lg);
   border: 1px solid var(--border-subtle);
-  margin-bottom: 2rem;
+  margin-bottom: 0;
   text-align: left;
 }
 

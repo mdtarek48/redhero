@@ -455,9 +455,13 @@ function updateTopStats() {
   const ready = approved.filter(d => !isDonorInCooldown(d)).length;
   const cooldown = approved.filter(d => isDonorInCooldown(d)).length;
 
-  document.getElementById('statReadyCount').textContent = toBnNum(ready);
-  document.getElementById('statCooldownCount').textContent = toBnNum(cooldown);
-  document.getElementById('statTotalApproved').textContent = toBnNum(approved.length);
+  const elReady = document.getElementById('statReadyCount');
+  const elCooldown = document.getElementById('statCooldownCount');
+  const elTotal = document.getElementById('statTotalApproved');
+
+  if (elReady) elReady.textContent = toBnNum(ready);
+  if (elCooldown) elCooldown.textContent = toBnNum(cooldown);
+  if (elTotal) elTotal.textContent = toBnNum(approved.length);
 }
 
 function updatePendingBadge() {
