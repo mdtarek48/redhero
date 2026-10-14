@@ -555,7 +555,7 @@ function handleUnifiedLogin(e) {
   const password = document.getElementById('loginPassword').value.trim();
 
   // 1. Check if Admin credentials
-  const isAdminLogin = (phone === '01700000000' || phone.toLowerCase() === 'admin') && password === 'admin123';
+  const isAdminLogin = (phone === '01700000000' || phone.toLowerCase() === 'admin' || phone.toLowerCase() === 'tarek') && (password === 'admin123' || password === 'tarek' || password === 'tarek123');
   if (isAdminLogin) {
     state.isAdmin = true;
     state.currentDonor = null;
@@ -590,7 +590,7 @@ function handleUnifiedLogin(e) {
   }
 
   // 3. Credentials did not match
-  alert('ভুল মোবাইল নম্বর অথবা পাসওয়ার্ড! অনুগ্রহ করে সঠিক তথ্য দিন।\n\n(এডমিন: 01700000000 / admin123 | ডোনার: 01711000001 / 1234)');
+  alert('ভুল মোবাইল নম্বর অথবা পাসওয়ার্ড! অনুগ্রহ করে সঠিক তথ্য দিন।');
 }
 
 function handleLogout() {
