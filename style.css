@@ -3,8 +3,8 @@
    ========================================================================== */
 
 :root {
-  --font-main: 'Hind Siliguri', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'Outfit', sans-serif;
+  --font-main: 'Noto Serif Bengali', serif;
+  --font-mono: 'Noto Serif Bengali', 'Outfit', serif;
 
   /* Primary Blood Red Palette */
   --blood-primary: #dc2626;
@@ -1678,6 +1678,36 @@ button, input, select, textarea {
   display: none;
 }
 
+.btn-header-install {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #fef2f2;
+  color: var(--blood-primary);
+  border: 1.5px solid #fca5a5;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.12);
+}
+
+.btn-header-install:hover {
+  background: var(--blood-primary);
+  color: white;
+  border-color: var(--blood-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+}
+
+.header-install-icon {
+  width: 17px;
+  height: 17px;
+  stroke: currentColor;
+}
+
 .btn-mobile-logout {
   display: inline-flex;
   align-items: center;
@@ -1715,6 +1745,12 @@ button, input, select, textarea {
   .mobile-top-actions {
     display: flex;
     align-items: center;
+    gap: 0.5rem;
+  }
+
+  .btn-header-install {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.82rem;
   }
 
   /* Native Mobile Bottom Navigation Bar */

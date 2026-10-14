@@ -14,7 +14,7 @@
   <link rel="manifest" href="/manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 
   <!-- Immediate PWA Prompt Capture -->
@@ -56,14 +56,14 @@
           <span>ডোনার খুঁজুন</span>
         </button>
 
-        <!-- PWA App Download Button -->
-        <button class="nav-btn btn-download-app" id="btnInstallApp" onclick="handleInstallApp()" title="মোবাইলে অ্যাপ ইনস্টল করুন">
+        <!-- PWA App Install Button -->
+        <button class="nav-btn btn-download-app" id="btnInstallApp" onclick="handleInstallApp()" title="অ্যাপ ইনস্টল করুন">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="7 10 12 15 17 10"></polyline>
             <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
-          <span>অ্যাপ ডাউনলোড</span>
+          <span>অ্যাপ ইনস্টল</span>
         </button>
 
         <!-- Dynamic Portal Button (Shows only when logged in as Donor or Admin) -->
@@ -90,8 +90,17 @@
         </button>
       </nav>
 
-      <!-- Mobile Top Right Action (Logout button when logged in) -->
+      <!-- Mobile Top Right Action (Always visible in mobile header) -->
       <div class="mobile-top-actions">
+        <button class="btn-header-install" onclick="handleInstallApp()" title="অ্যাপ ইনস্টল করুন">
+          <svg class="header-install-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>অ্যাপ ইনস্টল</span>
+        </button>
+
         <button class="btn-mobile-logout" id="mobTopLogout" onclick="handleLogout()" style="display:none;" title="লগআউট">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
           <span>লগআউট</span>
