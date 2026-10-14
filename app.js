@@ -291,18 +291,28 @@ function updateNavbarAuth() {
   const portalLabel = document.getElementById('portalNavLabel');
   const btnLogout = document.getElementById('navBtnLogout');
 
+  // Mobile navigation elements
+  const mobPortalLabel = document.getElementById('mobPortalLabel');
+  const mobTopLogout = document.getElementById('mobTopLogout');
+  const mobPortalIcon = document.getElementById('mobNavPortalIcon');
+
   if (state.isAdmin) {
     if (btnLogin) btnLogin.style.display = 'none';
     if (btnPortal) {
       btnPortal.style.display = 'inline-flex';
       btnPortal.classList.toggle('active', state.currentView === 'admin');
     }
-    if (portalLabel) {
-      portalLabel.textContent = state.isMasterAdmin 
-        ? 'মাস্টার এডমিন' 
-        : (state.currentAdmin?.name ? state.currentAdmin.name.split(' ')[0] + ' (এডমিন)' : 'এডমিন প্যানেল');
-    }
+    const adminLabel = state.isMasterAdmin 
+      ? 'মাস্টার এডমিন' 
+      : (state.currentAdmin?.name ? state.currentAdmin.name.split(' ')[0] + ' (এডমিন)' : 'এডমিন প্যানেল');
+    if (portalLabel) portalLabel.textContent = adminLabel;
     if (btnLogout) btnLogout.style.display = 'inline-flex';
+
+    if (mobPortalLabel) mobPortalLabel.textContent = 'এডমিন';
+    if (mobTopLogout) mobTopLogout.style.display = 'inline-flex';
+    if (mobPortalIcon) {
+      mobPortalIcon.innerHTML = '<path d="M12 2a5 5 0 0 1 5 5v3a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z"></path><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>';
+    }
   } else if (state.currentDonor) {
     if (btnLogin) btnLogin.style.display = 'none';
     if (btnPortal) {
@@ -311,10 +321,42 @@ function updateNavbarAuth() {
     }
     if (portalLabel) portalLabel.textContent = state.currentDonor.name.split(' ')[0] + ' (ড্যাশবোর্ড)';
     if (btnLogout) btnLogout.style.display = 'inline-flex';
+
+    if (mobPortalLabel) mobPortalLabel.textContent = 'ড্যাশবোর্ড';
+    if (mobTopLogout) mobTopLogout.style.display = 'inline-flex';
+    if (mobPortalIcon) {
+      mobPortalIcon.innerHTML = '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>';
+    }
   } else {
     if (btnLogin) btnLogin.style.display = 'inline-flex';
     if (btnPortal) btnPortal.style.display = 'none';
     if (btnLogout) btnLogout.style.display = 'none';
+
+    if (mobPortalLabel) mobPortalLabel.textContent = 'লগইন';
+    if (mobTopLogout) mobTopLogout.style.display = 'none';
+    if (mobPortalIcon) {
+      mobPortalIcon.innerHTML = '<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line>';
+    }
+  }
+
+  updateMobileBottomNavActive();
+}
+
+function updateMobileBottomNavActive() {
+  const mobPublic = document.getElementById('mobNavPublic');
+  const mobPortal = document.getElementById('mobNavPortal');
+
+  if (mobPublic) mobPublic.classList.toggle('active', state.currentView === 'public');
+  if (mobPortal) mobPortal.classList.toggle('active', state.currentView === 'donor' || state.currentView === 'admin');
+}
+
+function handleMobileAuthClick() {
+  if (state.isAdmin) {
+    switchView('admin');
+  } else if (state.currentDonor) {
+    switchView('donor');
+  } else {
+    openUnifiedLoginModal();
   }
 }
 
@@ -531,11 +573,20 @@ function updateTopStats() {
 function updatePendingBadge() {
   const pending = state.donors.filter(d => d.approvalStatus === 'PENDING').length;
   const pill = document.getElementById('pendingPillCount');
+  const mobPill = document.getElementById('mobPendingPill');
+
   if (pending > 0) {
-    pill.style.display = 'inline-block';
-    pill.textContent = toBnNum(pending);
+    if (pill) {
+      pill.style.display = 'inline-block';
+      pill.textContent = toBnNum(pending);
+    }
+    if (mobPill && state.isAdmin) {
+      mobPill.style.display = 'inline-block';
+      mobPill.textContent = toBnNum(pending);
+    }
   } else {
-    pill.style.display = 'none';
+    if (pill) pill.style.display = 'none';
+    if (mobPill) mobPill.style.display = 'none';
   }
 }
 
@@ -1354,6 +1405,7 @@ window.recordCallAttempt = recordCallAttempt;
 window.filterAdminTable = filterAdminTable;
 window.handleInstallApp = handleInstallApp;
 window.executeAppInstall = executeAppInstall;
+window.handleMobileAuthClick = handleMobileAuthClick;
 
 // ==========================================================================
 // PWA Service Worker & Direct App Installation

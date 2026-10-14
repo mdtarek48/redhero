@@ -32,8 +32,8 @@
       navigator.serviceWorker.register('/sw.js').catch(console.warn);
     }
   </script>
-  <script type="module" crossorigin src="/assets/index-BpLoJr0E.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-oHx1ghSb.css">
+  <script type="module" crossorigin src="/assets/index-DnMPEOtv.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-DBqdlII6.css">
 </head>
 <body>
 
@@ -90,6 +90,14 @@
           <span>ডোনার রেজিস্ট্রেশন</span>
         </button>
       </nav>
+
+      <!-- Mobile Top Right Action (Logout button when logged in) -->
+      <div class="mobile-top-actions">
+        <button class="btn-mobile-logout" id="mobTopLogout" onclick="handleLogout()" style="display:none;" title="লগআউট">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          <span>লগআউট</span>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -772,6 +780,34 @@
       </div>
     </div>
   </footer>
+
+  <!-- MOBILE BOTTOM APP NAVIGATION BAR -->
+  <nav class="mobile-bottom-nav" id="mobileBottomNav">
+    <button class="mobile-nav-item active" id="mobNavPublic" onclick="switchView('public')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+      <span>ডোনার খুঁজুন</span>
+    </button>
+
+    <button class="mobile-nav-item mobile-nav-highlight" onclick="openRegisterModal()" title="নতুন রক্তদাতা রেজিস্ট্রেশন">
+      <div class="mob-highlight-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      </div>
+      <span>রেজিস্ট্রেশন</span>
+    </button>
+
+    <button class="mobile-nav-item" onclick="handleInstallApp()" title="অ্যাপ ডাউনলোড">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+      <span>অ্যাপ ইনস্টল</span>
+    </button>
+
+    <button class="mobile-nav-item" id="mobNavPortal" onclick="handleMobileAuthClick()">
+      <div class="mob-icon-wrap">
+        <svg id="mobNavPortalIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+        <span class="pending-count-pill" id="mobPendingPill" style="display:none;">০</span>
+      </div>
+      <span id="mobPortalLabel">লগইন</span>
+    </button>
+  </nav>
 
   <!-- Script as ES Module for Firebase compatibility and Vite dev server -->
 </body>
