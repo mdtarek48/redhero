@@ -316,6 +316,22 @@ button, input, select, textarea {
   height: 18px;
 }
 
+/* PWA App Download Button */
+.btn-download-app {
+  background: #fef2f2;
+  color: var(--blood-primary);
+  border: 1px solid #fecaca;
+  font-weight: 600;
+}
+
+.btn-download-app:hover {
+  background: var(--blood-primary);
+  color: white;
+  border-color: var(--blood-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+}
+
 /* ==========================================================================
    Hero Section & Filters
    ========================================================================== */
@@ -1493,13 +1509,55 @@ button, input, select, textarea {
   background: var(--blood-primary);
   color: white;
   border: none;
-  padding: 0.75rem 1.5rem;
+  padding: 0.75rem 1.75rem;
   font-size: 1rem;
   font-weight: 700;
   border-radius: var(--radius-md);
   cursor: pointer;
-  box-shadow: var(--shadow-red);
+  transition: all var(--transition-fast);
 }
+
+.btn-danger-confirm:hover {
+  background: var(--blood-dark);
+}
+
+/* Install Guide Modal */
+.install-guide-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 1.25rem 0;
+}
+
+.install-card-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.install-card-step .step-icon {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.install-card-step strong {
+  display: block;
+  color: var(--text-main);
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+}
+
+.install-card-step p {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
 
 /* Alerts */
 .alert-box {

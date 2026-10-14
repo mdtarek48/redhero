@@ -1352,3 +1352,52 @@ window.closeModal = closeModal;
 window.alertLockedDonor = alertLockedDonor;
 window.recordCallAttempt = recordCallAttempt;
 window.filterAdminTable = filterAdminTable;
+window.handleInstallApp = handleInstallApp;
+window.triggerPwaPromptOrClose = triggerPwaPromptOrClose;
+
+// ==========================================================================
+// PWA Service Worker & App Installation
+// ==========================================================================
+let deferredInstallPrompt = null;
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then((reg) => console.log('✅ ServiceWorker registered with scope:', reg.scope))
+      .catch((err) => console.warn('ServiceWorker registration error:', err));
+  });
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  console.log('📱 PWA beforeinstallprompt captured!');
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  showToast('🎉 অ্যাপ সফলভাবে আপনার ডিভাইসে ইনস্টল হয়েছে!', 'success');
+});
+
+function handleInstallApp() {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        showToast('অ্যাপ ইনস্টল করা হচ্ছে...', 'info');
+      }
+      deferredInstallPrompt = null;
+    });
+  } else {
+    // Show step-by-step installation guide modal
+    openModal('installAppModal');
+  }
+}
+
+function triggerPwaPromptOrClose() {
+  closeModal('installAppModal');
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+  }
+}
+

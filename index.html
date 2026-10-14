@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>রক্তদান - জীবন বাঁচান | ফায়ারবেস ব্লাড ডোনার প্ল্যাটফর্ম</title>
   <meta name="description" content="জরুরি প্রয়োজনে ব্লাড ডোনার খুঁজুন এবং সরাসরি কল করুন। রক্তদাতাদের জন্য ৯০ দিনের অটোমেটিক কুলডাউন ও কল লকিং সুবিধা।">
+  <meta name="theme-color" content="#dc2626">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="ব্লাড সেবা">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="manifest" href="/manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -30,6 +37,16 @@
         <button class="nav-btn active" id="navBtnPublic" onclick="switchView('public')">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
           <span>ডোনার খুঁজুন</span>
+        </button>
+
+        <!-- PWA App Download Button -->
+        <button class="nav-btn btn-download-app" id="btnInstallApp" onclick="handleInstallApp()" title="মোবাইলে অ্যাপ ইনস্টল করুন">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>অ্যাপ ডাউনলোড</span>
         </button>
 
         <!-- Dynamic Portal Button (Shows only when logged in as Donor or Admin) -->
@@ -685,6 +702,54 @@
           <button type="submit" class="btn-primary">এডমিন যুক্ত করুন</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- PWA INSTALL GUIDE MODAL -->
+  <div id="installAppModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <img src="/icon-192.png" alt="App Icon" style="width: 44px; height: 44px; border-radius: 10px; box-shadow: var(--shadow-sm); object-fit: cover;">
+          <div>
+            <h3 class="modal-title">অ্যাপ ডাউনলোড ও ইনস্টল</h3>
+            <p class="modal-subtitle">ব্লাড সেবা অ্যাপ সরাসরি আপনার ডিভাইসে ইনস্টল করে নিন</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeModal('installAppModal')">&times;</button>
+      </div>
+
+      <div class="install-guide-content">
+        <div class="install-card-step">
+          <div class="step-icon">📱</div>
+          <div class="step-text">
+            <strong>অ্যান্ড্রয়েড ফোন (Chrome ব্রাউজার):</strong>
+            <p>ব্রাউজারের উপরের ডানপাশের <strong>তিনটি ডট (⋮)</strong> মেন্যুতে চাপ দিয়ে <strong>"Install app"</strong> অথবা <strong>"Add to Home screen"</strong> সিলেক্ট করুন।</p>
+          </div>
+        </div>
+
+        <div class="install-card-step">
+          <div class="step-icon">🍏</div>
+          <div class="step-text">
+            <strong>আইফোন (iPhone / Safari):</strong>
+            <p>Safari ব্রাউজারের নিচের <strong>Share</strong> (শেয়ার) আইকনে ট্যাপ করে <strong>"Add to Home Screen"</strong> অপশনে চাপ দিন।</p>
+          </div>
+        </div>
+
+        <div class="install-card-step">
+          <div class="step-icon">💻</div>
+          <div class="step-text">
+            <strong>কম্পিউটার বা ল্যাপটপ:</strong>
+            <p>ব্রাউজারের অ্যাড্রেস বারের ডানপাশে থাকা <strong>Install আইকন (⊕)</strong>-এ ক্লিক করলেই অ্যাপ ওপেন হবে।</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer justify-center">
+        <button type="button" class="btn-primary" onclick="triggerPwaPromptOrClose()">
+          <span>ঠিক আছে, বুঝেছি</span>
+        </button>
+      </div>
     </div>
   </div>
 
