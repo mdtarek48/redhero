@@ -171,8 +171,8 @@ function setupFirebaseConnection() {
 
   if (isFirebaseConfigured()) {
     state.usingFirebase = true;
-    indicator.className = 'cloud-indicator active';
-    text.textContent = 'ফায়ারবেস ক্লাউড কানেক্টেড (রিয়েলটাইম সিঙ্ক সক্রিয়)';
+    if (indicator) indicator.className = 'cloud-indicator active';
+    if (text) text.textContent = 'ফায়ারবেস ক্লাউড কানেক্টেড (রিয়েলটাইম সিঙ্ক সক্রিয়)';
 
     // Subscribe to Firestore Real-time updates
     subscribeToDonors((cloudDonors) => {
@@ -193,8 +193,8 @@ function setupFirebaseConnection() {
     });
   } else {
     state.usingFirebase = false;
-    indicator.className = 'cloud-indicator';
-    text.textContent = 'ফায়ারবেস এখনও কনফিগার করা হয়নি। ক্লাউডে ডাটা সেভ করতে ফায়ারবেস সেটিংস এ ক্লিক করুন।';
+    if (indicator) indicator.className = 'cloud-indicator';
+    if (text) text.textContent = 'ফায়ারবেস এখনও কনফিগার করা হয়নি। ক্লাউডে ডাটা সেভ করতে ফায়ারবেস সেটিংস এ ক্লিক করুন।';
     fallbackToBackup();
   }
 }
