@@ -367,6 +367,25 @@ function renderPublicDonors() {
     list = list.filter(d => isDonorInCooldown(d));
   }
 
+  // Sort: যারা এখন ব্লাড দিতে পারবেন তারা আগে থাকবে, যারা দিতে পারবেন না (বিশ্রামে আছেন) তারা পরে থাকবে
+  list.sort((a, b) => {
+    const aCooldown = isDonorInCooldown(a);
+    const bCooldown = isDonorInCooldown(b);
+
+    if (aCooldown !== bCooldown) {
+      // aCooldown false (ready) comes before bCooldown true (not ready)
+      return aCooldown ? 1 : -1;
+    }
+
+    // If both in cooldown, the donor whose cooldown finishes sooner appears first
+    if (aCooldown && bCooldown) {
+      return (Number(a.cooldownUntil) || 0) - (Number(b.cooldownUntil) || 0);
+    }
+
+    // If both are ready, sort by total donations descending
+    return (b.totalDonations || 0) - (a.totalDonations || 0);
+  });
+
   if (list.length === 0) {
     grid.innerHTML = '';
     emptyState.style.display = 'block';
