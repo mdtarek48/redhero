@@ -8,11 +8,11 @@ import {
   getFirestore, 
   collection, 
   doc, 
+  getDocs,
   setDoc, 
   updateDoc, 
   deleteDoc, 
-  onSnapshot,
-  serverTimestamp 
+  onSnapshot 
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 /**
@@ -160,6 +160,23 @@ export function subscribeToAdmins(onSuccess, onError) {
   });
 }
 
+// Fetch admins once from Firestore (used during admin login check)
+export async function fetchAdminsFromCloud() {
+  if (!db) return [];
+  try {
+    const adminsCol = collection(db, "admins");
+    const snapshot = await getDocs(adminsCol);
+    const list = [];
+    snapshot.forEach((docSnap) => {
+      list.push({ id: docSnap.id, ...docSnap.data() });
+    });
+    return list;
+  } catch (err) {
+    console.error("Failed to fetch admins from Firestore:", err);
+    return [];
+  }
+}
+
 // Add or save admin to Firestore
 export async function saveAdminToCloud(admin) {
   if (!db) {
@@ -168,6 +185,18 @@ export async function saveAdminToCloud(admin) {
   const adminRef = doc(db, "admins", admin.id);
   await setDoc(adminRef, {
     ...admin,
+    updatedAt: Date.now()
+  });
+}
+
+// Update admin in cloud (e.g. password hash update)
+export async function updateAdminInCloud(adminId, updates) {
+  if (!db) {
+    throw new Error("ফায়ারবেস এখনও কনফিগার করা হয়নি।");
+  }
+  const adminRef = doc(db, "admins", adminId);
+  await updateDoc(adminRef, {
+    ...updates,
     updatedAt: Date.now()
   });
 }

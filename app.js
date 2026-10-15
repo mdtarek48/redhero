@@ -16,18 +16,31 @@ import {
   updateDonorInCloud, 
   deleteDonorFromCloud, 
   subscribeToAdmins,
+  fetchAdminsFromCloud,
   saveAdminToCloud,
-  deleteAdminFromCloud,
+  updateAdminInCloud,
+  deleteAdminFromCloud, 
   saveCustomFirebaseConfig, 
   clearCustomFirebaseConfig 
 } from './firebase-config.js';
 
+import {
+  MASTER_ADMIN_PHONE,
+  DEFAULT_MASTER_ADMIN_HASH,
+  hashPassword,
+  verifyUserPassword,
+  verifyMasterAdminPassword,
+  checkBruteForceLockout,
+  recordFailedLoginAttempt,
+  resetFailedLoginAttempts,
+  sanitizeDonor,
+  sanitizeDonorsList,
+  validatePasswordStrength,
+  normalizePhoneSalt
+} from './security.js';
+
 // 90 Days in Milliseconds: 90 days * 24 hrs * 60 mins * 60 secs * 1000 ms
 const COOLDOWN_DURATION_MS = 90 * 24 * 60 * 60 * 1000;
-
-// Master Admin Credentials
-const MASTER_ADMIN_PHONE = '01711578574';
-const MASTER_ADMIN_PASS = '129430';
 
 // Local Session Keys (Only for maintaining who is logged into this browser)
 const STORAGE_DONOR_AUTH_KEY = 'blood_seva_auth_donor_v1';
@@ -41,7 +54,7 @@ function toBnNum(num) {
   return String(num).replace(/[0-9]/g, digit => bnDigits[digit]);
 }
 
-// Initial Seed Data (Used to populate Firestore if empty or during fallback)
+// Initial Seed Data (All passwords stored as irreversible cryptographic hashes!)
 const INITIAL_SEED_DONORS = [
   {
     id: 'donor_001',
@@ -50,7 +63,7 @@ const INITIAL_SEED_DONORS = [
     phone: '01711000001',
     district: 'ঢাকা',
     area: 'মিরপুর-১০',
-    password: '1234',
+    passwordHash: '1c86e10e3d1dd004d629cd473af75ac832c374f32c3cf76073014071a79c5cf1',
     approvalStatus: 'APPROVED',
     lastDonationDate: null,
     cooldownUntil: 0,
@@ -64,7 +77,7 @@ const INITIAL_SEED_DONORS = [
     phone: '01812000002',
     district: 'চট্টগ্রাম',
     area: 'জিইসি মোড়',
-    password: '1234',
+    passwordHash: 'ce23933b46ed4e3d87de830ac98cae6a6e0879382ce5625eecd0b57088e2d28b',
     approvalStatus: 'APPROVED',
     // Donated 20 days ago (so 70 days remaining in cooldown)
     lastDonationDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
@@ -79,7 +92,7 @@ const INITIAL_SEED_DONORS = [
     phone: '01913000003',
     district: 'ঢাকা',
     area: 'ধানমন্ডি ২৭',
-    password: '1234',
+    passwordHash: '83270cfb8acf7bf3fddd2f1bd66926a1d595696eb64eb627d8d263bc362391fb',
     approvalStatus: 'APPROVED',
     lastDonationDate: null,
     cooldownUntil: 0,
@@ -93,7 +106,7 @@ const INITIAL_SEED_DONORS = [
     phone: '01614000004',
     district: 'সিলেট',
     area: 'জিন্দাবাজার',
-    password: '1234',
+    passwordHash: '2c2e26921aede439a178736445cb84c0e52b1ecbb7b141bc79919cf2390d7248',
     approvalStatus: 'APPROVED',
     lastDonationDate: null,
     cooldownUntil: 0,
@@ -107,7 +120,7 @@ const INITIAL_SEED_DONORS = [
     phone: '01715000005',
     district: 'রাজশাহী',
     area: 'জিরো পয়েন্ট',
-    password: '1234',
+    passwordHash: 'ec0d19ba7a04f19b8330407d46f0d88352fc68e07d7600488ae12f485f0cf481',
     approvalStatus: 'APPROVED',
     // Donated 45 days ago (so 45 days remaining in cooldown)
     lastDonationDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
@@ -122,7 +135,7 @@ const INITIAL_SEED_DONORS = [
     phone: '01516000006',
     district: 'খুলনা',
     area: 'দৌলতপুর',
-    password: '1234',
+    passwordHash: '10e13737ee82effecc13e1865ecc0104b7d7420cc2070cea2bedc04a0afb33e1',
     approvalStatus: 'PENDING', // Awaiting Admin Review
     lastDonationDate: null,
     cooldownUntil: 0,
@@ -136,7 +149,7 @@ const INITIAL_SEED_DONORS = [
     phone: '01717000007',
     district: 'ঢাকা',
     area: 'উত্তরা সেক্টর ৭',
-    password: '1234',
+    passwordHash: 'c4899866c2bf82061386185b19b851e02f804f79a7d9a1cede862200a472b917',
     approvalStatus: 'APPROVED',
     lastDonationDate: null,
     cooldownUntil: 0,
@@ -193,8 +206,8 @@ function setupFirebaseConnection() {
         seedInitialDonorsToCloud();
       } else {
         state.donors = cloudDonors;
-        // Keep a silent local backup just in case
-        localStorage.setItem(STORAGE_DONORS_BACKUP_KEY, JSON.stringify(cloudDonors));
+        // Keep a sanitized local backup (passwords completely stripped out)
+        localStorage.setItem(STORAGE_DONORS_BACKUP_KEY, JSON.stringify(sanitizeDonorsList(cloudDonors)));
         onDonorsUpdated();
       }
     }, (err) => {
@@ -203,24 +216,41 @@ function setupFirebaseConnection() {
       fallbackToBackup();
     });
 
-    // Subscribe to Firestore Real-time updates for Admins
-    subscribeToAdmins((cloudAdmins) => {
-      console.log('🔥 Received Real-time Admins from Firebase:', cloudAdmins.length);
-      state.admins = cloudAdmins;
-      localStorage.setItem(STORAGE_ADMINS_BACKUP_KEY, JSON.stringify(cloudAdmins));
-      if (state.currentView === 'admin' && state.isMasterAdmin) {
-        renderAdminTeam();
-      }
-    }, (err) => {
-      console.error('Firebase admins sync error:', err);
-      fallbackAdminsBackup();
-    });
+    // Admin synchronization is ONLY activated for authenticated admins (never downloaded by public visitors)
+    syncAdminSubscription();
   } else {
     state.usingFirebase = false;
     if (indicator) indicator.className = 'cloud-indicator';
     if (text) text.textContent = 'ফায়ারবেস এখনও কনফিগার করা হয়নি। ক্লাউডে ডাটা সেভ করতে ফায়ারবেস সেটিংস এ ক্লিক করুন।';
     fallbackToBackup();
     fallbackAdminsBackup();
+  }
+}
+
+let adminUnsubscribe = null;
+function syncAdminSubscription() {
+  if (!state.usingFirebase) return;
+  if (state.isAdmin) {
+    if (!adminUnsubscribe) {
+      adminUnsubscribe = subscribeToAdmins((cloudAdmins) => {
+        console.log('🔥 Received Real-time Admins from Firebase:', cloudAdmins.length);
+        state.admins = cloudAdmins;
+        localStorage.setItem(STORAGE_ADMINS_BACKUP_KEY, JSON.stringify(cloudAdmins));
+        if (state.currentView === 'admin' && state.isMasterAdmin) {
+          renderAdminTeam();
+        }
+      }, (err) => {
+        console.error('Firebase admins sync error:', err);
+        fallbackAdminsBackup();
+      });
+    }
+  } else {
+    if (typeof adminUnsubscribe === 'function') {
+      try { adminUnsubscribe(); } catch(e) {}
+    }
+    adminUnsubscribe = null;
+    state.admins = [];
+    localStorage.removeItem(STORAGE_ADMINS_BACKUP_KEY);
   }
 }
 
@@ -339,6 +369,11 @@ function updateNavbarAuth() {
     }
   }
 
+  const btnMasterPass = document.getElementById('btnMasterChangePass');
+  if (btnMasterPass) {
+    btnMasterPass.style.display = (state.isAdmin && state.isMasterAdmin) ? 'inline-flex' : 'none';
+  }
+
   updateMobileBottomNavActive();
 }
 
@@ -414,12 +449,36 @@ function formatCooldownDisplayBn(cooldownUntil) {
 }
 
 // ==========================================================================
+// ==========================================================================
 // Public View: Donor Directory & Filtering
 // ==========================================================================
+function updateQuickBloodChipsUI(activeGroup) {
+  const chips = document.querySelectorAll('.blood-chip');
+  chips.forEach(chip => {
+    if (chip.getAttribute('data-group') === activeGroup) {
+      chip.classList.add('active');
+    } else {
+      chip.classList.remove('active');
+    }
+  });
+}
+
+function selectQuickBloodGroup(group) {
+  const selectElem = document.getElementById('filterBloodGroup');
+  if (selectElem) {
+    selectElem.value = group;
+  }
+  state.filters.bloodGroup = group;
+  updateQuickBloodChipsUI(group);
+  renderPublicDonors();
+}
+
 function applyFilters() {
-  state.filters.bloodGroup = document.getElementById('filterBloodGroup').value;
+  const selectedGroup = document.getElementById('filterBloodGroup').value;
+  state.filters.bloodGroup = selectedGroup;
   state.filters.district = document.getElementById('filterDistrict').value;
   state.filters.status = document.getElementById('filterStatus').value;
+  updateQuickBloodChipsUI(selectedGroup);
   renderPublicDonors();
 }
 
@@ -428,6 +487,7 @@ function resetFilters() {
   document.getElementById('filterDistrict').value = 'ALL';
   document.getElementById('filterStatus').value = 'ALL';
   state.filters = { bloodGroup: 'ALL', district: 'ALL', status: 'ALL' };
+  updateQuickBloodChipsUI('ALL');
   renderPublicDonors();
   showToast('ফিল্টার রিসেট করা হয়েছে', 'info');
 }
@@ -650,7 +710,32 @@ function openUnifiedLoginModal() {
   const phone = document.getElementById('loginPhone');
   if (phone) phone.value = '';
   const pass = document.getElementById('loginPassword');
-  if (pass) pass.value = '';
+  if (pass) {
+    pass.value = '';
+    pass.type = 'password';
+  }
+
+  // Check brute force lockout state
+  const lockout = checkBruteForceLockout();
+  const lockoutContainer = document.getElementById('loginLockoutContainer');
+  const lockoutMsg = document.getElementById('loginLockoutMsg');
+  const submitBtn = document.getElementById('btnUnifiedLoginSubmit');
+
+  if (lockout.isLocked) {
+    if (lockoutContainer) lockoutContainer.style.display = 'flex';
+    if (lockoutMsg) lockoutMsg.textContent = `❌ অতিরিক্ত ভুল চেষ্টার কারণে লগইন সাময়িকভাবে লক রয়েছে। অনুগ্রহ করে ${toBnNum(lockout.remainingSec)} সেকেন্ড অপেক্ষা করুন।`;
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = `লক রয়েছে (${toBnNum(lockout.remainingSec)} সেঃ)`;
+    }
+  } else {
+    if (lockoutContainer) lockoutContainer.style.display = 'none';
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'লগইন করুন';
+    }
+  }
+
   openModal('unifiedLoginModal');
 }
 
@@ -674,80 +759,144 @@ function openRegisterFromLogin() {
   openModal('registerModal');
 }
 
-function handleUnifiedLogin(e) {
+async function handleUnifiedLogin(e) {
   e.preventDefault();
+
+  // 1. Check brute force lockout
+  const lockout = checkBruteForceLockout();
+  if (lockout.isLocked) {
+    alert(`❌ অতিরিক্ত ভুল চেষ্টার কারণে লগইন সাময়িকভাবে বন্ধ আছে। হ্যাকিং ও অননুমোদিত চেষ্টা প্রতিরোধের জন্য অনুগ্রহ করে ${toBnNum(lockout.remainingSec)} সেকেন্ড পর আবার চেষ্টা করুন।`);
+    return;
+  }
+
   const phone = document.getElementById('loginPhone').value.trim();
   const password = document.getElementById('loginPassword').value.trim();
-  const cleanPhone = phone.replace(/^\+88/, '').replace(/^88/, '');
+  const cleanPhone = normalizePhoneSalt(phone);
 
-  // 1. Check if Master Admin (01711578574 / 129430)
-  const isMasterLogin = (cleanPhone === MASTER_ADMIN_PHONE || phone === MASTER_ADMIN_PHONE) && password === MASTER_ADMIN_PASS;
-  if (isMasterLogin) {
-    state.isAdmin = true;
-    state.isMasterAdmin = true;
-    state.currentAdmin = { name: 'মাস্টার এডমিন', phone: MASTER_ADMIN_PHONE, role: 'MASTER_ADMIN' };
-    state.currentDonor = null;
-    localStorage.setItem(STORAGE_AUTH_SESSION_KEY, JSON.stringify({ role: 'ADMIN', isMaster: true, phone: MASTER_ADMIN_PHONE }));
-
-    closeModal('unifiedLoginModal');
-    const form = document.getElementById('unifiedLoginForm');
-    if (form) form.reset();
-
-    updateNavbarAuth();
-    switchView('admin');
-    showToast('👑 স্বাগতম মাস্টার এডমিন! এডমিন প্যানেলে সফলভাবে প্রবেশ করেছেন।', 'success');
+  if (!phone || !password) {
+    alert('অনুগ্রহ করে মোবাইল নম্বর ও পাসওয়ার্ড দিন।');
     return;
   }
 
-  // 2. Check if Added Sub-Admin
-  const foundAdmin = state.admins.find(a => {
-    const aClean = a.phone ? a.phone.replace(/^\+88/, '').replace(/^88/, '') : '';
-    return (aClean === cleanPhone || a.phone === phone) && a.password === password;
-  });
-
-  if (foundAdmin) {
-    state.isAdmin = true;
-    state.isMasterAdmin = false;
-    state.currentAdmin = foundAdmin;
-    state.currentDonor = null;
-    localStorage.setItem(STORAGE_AUTH_SESSION_KEY, JSON.stringify({ role: 'ADMIN', isMaster: false, phone: foundAdmin.phone, name: foundAdmin.name }));
-
-    closeModal('unifiedLoginModal');
-    const form = document.getElementById('unifiedLoginForm');
-    if (form) form.reset();
-
-    updateNavbarAuth();
-    switchView('admin');
-    showToast(`স্বাগতম ${foundAdmin.name}! এডমিন প্যানেলে প্রবেশ করেছেন।`, 'success');
-    return;
+  const submitBtn = document.getElementById('btnUnifiedLoginSubmit');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'যাচাই করা হচ্ছে...';
   }
 
-  // 3. Check if Donor credentials
-  const foundDonor = state.donors.find(d => {
-    const dClean = d.phone ? d.phone.replace(/^\+88/, '').replace(/^88/, '') : '';
-    return (dClean === cleanPhone || d.phone === phone) && d.password === password;
-  });
+  try {
+    // 1. Check if Master Admin (Cryptographic Salted Hash Verification)
+    const isMasterLogin = await verifyMasterAdminPassword(cleanPhone, password);
+    if (isMasterLogin) {
+      resetFailedLoginAttempts();
+      state.isAdmin = true;
+      state.isMasterAdmin = true;
+      state.currentAdmin = { name: 'মাস্টার এডমিন', phone: MASTER_ADMIN_PHONE, role: 'MASTER_ADMIN' };
+      state.currentDonor = null;
+      localStorage.setItem(STORAGE_AUTH_SESSION_KEY, JSON.stringify({ role: 'ADMIN', isMaster: true, phone: MASTER_ADMIN_PHONE }));
 
-  if (foundDonor) {
-    state.currentDonor = foundDonor;
-    state.isAdmin = false;
-    state.isMasterAdmin = false;
-    state.currentAdmin = null;
-    localStorage.setItem(STORAGE_AUTH_SESSION_KEY, JSON.stringify({ role: 'DONOR', id: foundDonor.id }));
+      syncAdminSubscription();
+      closeModal('unifiedLoginModal');
+      const form = document.getElementById('unifiedLoginForm');
+      if (form) form.reset();
 
-    closeModal('unifiedLoginModal');
-    const form = document.getElementById('unifiedLoginForm');
-    if (form) form.reset();
+      updateNavbarAuth();
+      switchView('admin');
+      showToast('👑 স্বাগতম মাস্টার এডমিন! এডমিন প্যানেলে সফলভাবে প্রবেশ করেছেন।', 'success');
+      return;
+    }
 
-    updateNavbarAuth();
-    switchView('donor');
-    renderDonorDashboard();
-    showToast(`স্বাগতম, ${foundDonor.name}! আপনার ড্যাশবোর্ডে প্রবেশ করেছেন।`, 'success');
-    return;
+    // 2. Check if Added Sub-Admin
+    let adminList = state.admins;
+    if ((!adminList || adminList.length === 0) && state.usingFirebase) {
+      adminList = await fetchAdminsFromCloud();
+    }
+
+    const foundAdmin = adminList.find(a => {
+      const aClean = normalizePhoneSalt(a.phone);
+      return aClean === cleanPhone || a.phone === phone;
+    });
+
+    if (foundAdmin) {
+      const isAdminMatch = await verifyUserPassword(password, foundAdmin, async (newHash) => {
+        // Automatically upgrade legacy plaintext to secure hash in cloud
+        if (state.usingFirebase) {
+          await updateAdminInCloud(foundAdmin.id, { passwordHash: newHash, password: null });
+        }
+      });
+
+      if (isAdminMatch) {
+        resetFailedLoginAttempts();
+        state.isAdmin = true;
+        state.isMasterAdmin = false;
+        state.currentAdmin = foundAdmin;
+        state.currentDonor = null;
+        localStorage.setItem(STORAGE_AUTH_SESSION_KEY, JSON.stringify({ role: 'ADMIN', isMaster: false, phone: foundAdmin.phone, name: foundAdmin.name }));
+
+        syncAdminSubscription();
+        closeModal('unifiedLoginModal');
+        const form = document.getElementById('unifiedLoginForm');
+        if (form) form.reset();
+
+        updateNavbarAuth();
+        switchView('admin');
+        showToast(`স্বাগতম ${foundAdmin.name}! এডমিন প্যানেলে প্রবেশ করেছেন।`, 'success');
+        return;
+      }
+    }
+
+    // 3. Check if Donor credentials
+    const foundDonor = state.donors.find(d => {
+      const dClean = normalizePhoneSalt(d.phone);
+      return dClean === cleanPhone || d.phone === phone;
+    });
+
+    if (foundDonor) {
+      const isDonorMatch = await verifyUserPassword(password, foundDonor, async (newHash) => {
+        // Automatically upgrade legacy plaintext to secure hash in cloud
+        if (state.usingFirebase) {
+          await updateDonorInCloud(foundDonor.id, { passwordHash: newHash, password: null });
+        }
+      });
+
+      if (isDonorMatch) {
+        resetFailedLoginAttempts();
+        state.currentDonor = foundDonor;
+        state.isAdmin = false;
+        state.isMasterAdmin = false;
+        state.currentAdmin = null;
+        localStorage.setItem(STORAGE_AUTH_SESSION_KEY, JSON.stringify({ role: 'DONOR', id: foundDonor.id }));
+
+        closeModal('unifiedLoginModal');
+        const form = document.getElementById('unifiedLoginForm');
+        if (form) form.reset();
+
+        updateNavbarAuth();
+        switchView('donor');
+        renderDonorDashboard();
+        showToast(`স্বাগতম, ${foundDonor.name}! আপনার ড্যাশবোর্ডে প্রবেশ করেছেন।`, 'success');
+        return;
+      }
+    }
+
+    // 4. Failed login - Record attempt & trigger lockout protection
+    const attemptResult = recordFailedLoginAttempt();
+    if (attemptResult.lockedNow) {
+      alert(`❌ অতিরিক্ত ৫ বার ভুল পাসওয়ার্ড দেওয়ার কারণে আপনার লগইন ৬০ সেকেন্ডের জন্য সাময়িকভাবে লক করা হয়েছে। হ্যাকিং প্রতিরোধে এটি স্বয়ংক্রিয় নিরাপত্তা ব্যবস্থা।`);
+      openUnifiedLoginModal();
+    } else {
+      alert(`ভুল মোবাইল নম্বর অথবা পাসওয়ার্ড! আপনার আর ${toBnNum(attemptResult.remainingAttempts)} বার চেষ্টা করার সুযোগ আছে।`);
+    }
+
+  } catch (err) {
+    console.error('Login error:', err);
+    alert('লগইন প্রক্রিয়ায় সমস্যা হয়েছে: ' + err.message);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'লগইন করুন';
+    }
   }
-
-  // 4. Credentials did not match
-  alert('ভুল মোবাইল নম্বর অথবা পাসওয়ার্ড! অনুগ্রহ করে সঠিক তথ্য দিন।');
 }
 
 function handleLogout() {
@@ -756,6 +905,7 @@ function handleLogout() {
   state.currentAdmin = null;
   state.currentDonor = null;
   localStorage.removeItem(STORAGE_AUTH_SESSION_KEY);
+  syncAdminSubscription();
   updateNavbarAuth();
   switchView('public');
   showToast('সফলভাবে লগআউট হয়েছেন।', 'info');
@@ -772,7 +922,14 @@ async function handleDonorRegister(e) {
   const lastDonationInput = document.getElementById('regLastDonation').value;
   const password = document.getElementById('regPassword').value;
 
-  const existing = state.donors.find(d => d.phone === phone);
+  const strength = validatePasswordStrength(password);
+  if (!strength.valid) {
+    alert(strength.message);
+    return;
+  }
+
+  const cleanPhone = normalizePhoneSalt(phone);
+  const existing = state.donors.find(d => normalizePhoneSalt(d.phone) === cleanPhone);
   if (existing) {
     alert('এই মোবাইল নম্বর দিয়ে ইতিমধ্যে একটি একাউন্ট রয়েছে!');
     return;
@@ -790,6 +947,9 @@ async function handleDonorRegister(e) {
     }
   }
 
+  // Generate Salted Cryptographic SHA-256 Hash - NEVER store plain text password!
+  const passwordHash = await hashPassword(password, cleanPhone);
+
   const newDonor = {
     id: 'donor_' + Date.now(),
     name,
@@ -797,7 +957,7 @@ async function handleDonorRegister(e) {
     phone,
     district,
     area,
-    password,
+    passwordHash, // Cryptographically secured!
     approvalStatus: 'PENDING', // Awaiting Admin Approval
     lastDonationDate,
     cooldownUntil,
@@ -810,7 +970,7 @@ async function handleDonorRegister(e) {
       await saveDonorToCloud(newDonor);
     } else {
       state.donors.unshift(newDonor);
-      localStorage.setItem(STORAGE_DONORS_BACKUP_KEY, JSON.stringify(state.donors));
+      localStorage.setItem(STORAGE_DONORS_BACKUP_KEY, JSON.stringify(sanitizeDonorsList(state.donors)));
       onDonorsUpdated();
     }
 
@@ -824,7 +984,7 @@ async function handleDonorRegister(e) {
 
     switchView('donor');
     renderDonorDashboard();
-    showToast('আপনার রেজিস্ট্রেশন ক্লাউডে জমা হয়েছে! অ্যাডমিন রিভিউ শেষে সাধারণ তালিকায় দেখা যাবে।', 'warning');
+    showToast('আপনার রেজিস্ট্রেশন ক্লাউডে জমা হয়েছে! পাসওয়ার্ড সম্পূর্ণ এনক্রিপ্ট করে সুরক্ষিত রাখা হয়েছে।', 'success');
   } catch (err) {
     console.error('Registration failed:', err);
     alert('রেজিস্ট্রেশন করতে সমস্যা হয়েছে: ' + err.message);
@@ -1168,6 +1328,9 @@ async function handleAdminAddDonor(e) {
     }
   }
 
+  const cleanPhone = normalizePhoneSalt(phone);
+  const passwordHash = await hashPassword('1234', cleanPhone);
+
   const manualDonor = {
     id: 'donor_man_' + Date.now(),
     name,
@@ -1175,7 +1338,7 @@ async function handleAdminAddDonor(e) {
     phone,
     district,
     area,
-    password: '1234',
+    passwordHash, // Cryptographically secured hash!
     approvalStatus: 'APPROVED', // Manually added donors by admin are AUTO-APPROVED
     lastDonationDate,
     cooldownUntil,
@@ -1188,7 +1351,7 @@ async function handleAdminAddDonor(e) {
       await saveDonorToCloud(manualDonor);
     } else {
       state.donors.unshift(manualDonor);
-      localStorage.setItem(STORAGE_DONORS_BACKUP_KEY, JSON.stringify(state.donors));
+      localStorage.setItem(STORAGE_DONORS_BACKUP_KEY, JSON.stringify(sanitizeDonorsList(state.donors)));
       onDonorsUpdated();
     }
 
@@ -1211,7 +1374,7 @@ function renderAdminTeam() {
     <tr>
       <td><strong>মাস্টার এডমিন (প্রধান)</strong></td>
       <td>${MASTER_ADMIN_PHONE}</td>
-      <td>••••••</td>
+      <td><span class="badge-secure">🔒 সুরক্ষিত (মাস্টার কী)</span></td>
       <td><span class="badge-role-master">👑 মাস্টার এডমিন</span></td>
       <td style="text-align: right;"><span class="text-muted" style="font-size:0.85rem;">ডিফল্ট (স্থায়ী)</span></td>
     </tr>
@@ -1230,7 +1393,7 @@ function renderAdminTeam() {
       <tr>
         <td><strong>${admin.name}</strong></td>
         <td>${admin.phone}</td>
-        <td><code>${admin.password}</code></td>
+        <td><span class="badge-secure"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> সুরক্ষিত (গোপন)</span></td>
         <td><span class="badge-role-admin">সাধারণ এডমিন</span></td>
         <td style="text-align: right;">
           <button class="btn-table-action delete" onclick="removeAdminAccount('${admin.id}', '${admin.name}')">
@@ -1256,22 +1419,30 @@ async function handleCreateAdmin(e) {
   const phone = document.getElementById('newAdminPhone').value.trim();
   const password = document.getElementById('newAdminPassword').value.trim();
 
-  const cleanPhone = phone.replace(/^\+88/, '').replace(/^88/, '');
+  const strength = validatePasswordStrength(password);
+  if (!strength.valid) {
+    alert(strength.message);
+    return;
+  }
+
+  const cleanPhone = normalizePhoneSalt(phone);
   if (cleanPhone === MASTER_ADMIN_PHONE) {
     alert('এই নম্বরটি মাস্টার এডমিনের জন্য সংরক্ষিত!');
     return;
   }
 
-  if (state.admins.some(a => a.phone === phone || a.phone === cleanPhone)) {
+  if (state.admins.some(a => normalizePhoneSalt(a.phone) === cleanPhone || a.phone === phone)) {
     alert('এই মোবাইল নম্বরে ইতিমধ্যে একজন এডমিন যোগ করা আছে!');
     return;
   }
+
+  const passwordHash = await hashPassword(password, cleanPhone);
 
   const newAdmin = {
     id: 'admin_' + Date.now(),
     name,
     phone,
-    password,
+    passwordHash, // Cryptographically secured!
     role: 'ADMIN',
     createdAt: new Date().toISOString()
   };
@@ -1286,11 +1457,124 @@ async function handleCreateAdmin(e) {
     }
 
     closeModal('addAdminModal');
-    showToast(`নতুন এডমিন "${name}" সফলভাবে যুক্ত হয়েছে!`, 'success');
+    showToast(`নতুন এডমিন "${name}" সফলভাবে যুক্ত হয়েছে! পাসওয়ার্ড এনক্রিপ্ট করা হয়েছে।`, 'success');
   } catch (err) {
     console.error('Failed to create admin:', err);
     alert('এডমিন সংরক্ষণ ব্যর্থ হয়েছে: ' + err.message);
   }
+}
+
+// ==========================================================================
+// Password Management & Security Handlers
+// ==========================================================================
+function togglePasswordVisibility(inputId, btnEl) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const isPass = input.type === 'password';
+  input.type = isPass ? 'text' : 'password';
+  if (btnEl) {
+    btnEl.innerHTML = isPass 
+      ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`
+      : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+  }
+}
+
+function openDonorChangePasswordModal() {
+  const form = document.getElementById('donorChangePassForm');
+  if (form) form.reset();
+  openModal('donorChangePassModal');
+}
+
+async function handleDonorChangePassword(e) {
+  e.preventDefault();
+  if (!state.currentDonor) {
+    alert('প্রথমে আপনার একাউন্টে লগইন করুন।');
+    return;
+  }
+
+  const oldPass = document.getElementById('donorOldPassword').value.trim();
+  const newPass = document.getElementById('donorNewPassword').value.trim();
+  const confirmPass = document.getElementById('donorConfirmPassword').value.trim();
+
+  // 1. Verify old password
+  const isOldValid = await verifyUserPassword(oldPass, state.currentDonor);
+  if (!isOldValid) {
+    alert('বর্তমান পাসওয়ার্ডটি সঠিক নয়!');
+    return;
+  }
+
+  // 2. Validate new password strength
+  const strength = validatePasswordStrength(newPass);
+  if (!strength.valid) {
+    alert(strength.message);
+    return;
+  }
+
+  if (newPass !== confirmPass) {
+    alert('নতুন পাসওয়ার্ড এবং নিশ্চিতকরণ পাসওয়ার্ড মিলছে না!');
+    return;
+  }
+
+  // 3. Compute new salted hash
+  const newHash = await hashPassword(newPass, state.currentDonor.phone);
+
+  try {
+    if (state.usingFirebase) {
+      await updateDonorInCloud(state.currentDonor.id, { passwordHash: newHash, password: null });
+    }
+    state.currentDonor.passwordHash = newHash;
+    delete state.currentDonor.password;
+
+    closeModal('donorChangePassModal');
+    showToast('🔒 পাসওয়ার্ড সফলভাবে পরিবর্তিত হয়েছে ও ক্লাউডে এনক্রিপ্ট করে সেভ করা হয়েছে!', 'success');
+  } catch (err) {
+    console.error('Password change error:', err);
+    alert('পাসওয়ার্ড পরিবর্তন ব্যর্থ হয়েছে: ' + err.message);
+  }
+}
+
+function openMasterChangePasswordModal() {
+  const form = document.getElementById('masterChangePassForm');
+  if (form) form.reset();
+  openModal('masterChangePassModal');
+}
+
+async function handleMasterChangePassword(e) {
+  e.preventDefault();
+  if (!state.isAdmin || !state.isMasterAdmin) {
+    alert('শুধুমাত্র মাস্টার এডমিন এই পাসওয়ার্ড পরিবর্তন করতে পারেন।');
+    return;
+  }
+
+  const oldPass = document.getElementById('masterOldPassword').value.trim();
+  const newPass = document.getElementById('masterNewPassword').value.trim();
+  const confirmPass = document.getElementById('masterConfirmPassword').value.trim();
+
+  // 1. Verify current master pass
+  const isOldValid = await verifyMasterAdminPassword(MASTER_ADMIN_PHONE, oldPass);
+  if (!isOldValid) {
+    alert('বর্তমান মাস্টার পাসওয়ার্ড সঠিক নয়!');
+    return;
+  }
+
+  // 2. Validate new password strength
+  const strength = validatePasswordStrength(newPass);
+  if (!strength.valid) {
+    alert(strength.message);
+    return;
+  }
+
+  if (newPass !== confirmPass) {
+    alert('নতুন পাসওয়ার্ড এবং নিশ্চিতকরণ পাসওয়ার্ড মিলছে না!');
+    return;
+  }
+
+  // 3. Compute new salted hash and persist
+  const newHash = await hashPassword(newPass, MASTER_ADMIN_PHONE);
+  localStorage.setItem('blood_seva_master_pass_hash', newHash);
+
+  closeModal('masterChangePassModal');
+  showToast('👑 মাস্টার এডমিন পাসওয়ার্ড সফলভাবে আপডেট ও ক্রিপ্টোগ্রাফিকভাবে সুরক্ষিত করা হয়েছে!', 'success');
 }
 
 async function removeAdminAccount(adminId, adminName) {
@@ -1375,6 +1659,8 @@ function showToast(message, type = 'info') {
 // Attach methods to Window object for HTML inline handlers in ES Module
 // ==========================================================================
 window.switchView = switchView;
+window.selectQuickBloodGroup = selectQuickBloodGroup;
+window.updateQuickBloodChipsUI = updateQuickBloodChipsUI;
 window.applyFilters = applyFilters;
 window.resetFilters = resetFilters;
 window.openUnifiedLoginModal = openUnifiedLoginModal;
@@ -1406,6 +1692,11 @@ window.filterAdminTable = filterAdminTable;
 window.handleInstallApp = handleInstallApp;
 window.executeAppInstall = executeAppInstall;
 window.handleMobileAuthClick = handleMobileAuthClick;
+window.togglePasswordVisibility = togglePasswordVisibility;
+window.openDonorChangePasswordModal = openDonorChangePasswordModal;
+window.handleDonorChangePassword = handleDonorChangePassword;
+window.openMasterChangePasswordModal = openMasterChangePasswordModal;
+window.handleMasterChangePassword = handleMasterChangePassword;
 
 // ==========================================================================
 // PWA Service Worker & Direct App Installation

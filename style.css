@@ -392,6 +392,72 @@ button, input, select, textarea {
   margin: 0 auto 2rem;
 }
 
+/* Quick Blood Chips Bar */
+.quick-blood-chips-scroll {
+  margin: 1.25rem 0 1.5rem;
+}
+
+.quick-chips-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 0.65rem;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.quick-blood-chips {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  justify-content: center;
+  padding: 0.25rem 0.25rem 0.5rem;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.quick-blood-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.blood-chip {
+  flex-shrink: 0;
+  padding: 0.5rem 1.15rem;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--border-strong);
+  background: var(--bg-surface);
+  color: var(--text-main);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.blood-chip:hover {
+  border-color: var(--blood-primary);
+  color: var(--blood-primary);
+  transform: translateY(-1px);
+}
+
+.blood-chip.active {
+  background: var(--blood-gradient);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.38);
+  transform: translateY(-2px);
+}
+
+.blood-chip:active {
+  transform: scale(0.95);
+}
+
 /* Filter Card */
 .filter-card {
   background: var(--bg-surface);
@@ -441,6 +507,85 @@ button, input, select, textarea {
 .form-group select:focus {
   border-color: var(--blood-primary);
   box-shadow: 0 0 0 3px var(--blood-glow);
+}
+
+/* ==========================================================================
+   Password Security & UI Controls
+   ========================================================================== */
+.password-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.password-input-wrap input {
+  padding-right: 2.85rem !important;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background var(--transition-fast);
+  z-index: 2;
+}
+
+.password-toggle-btn:hover {
+  color: var(--blood-primary);
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.badge-secure {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.lockout-warning-banner {
+  background: #fef2f2;
+  border: 1.5px solid #fecaca;
+  color: #991b1b;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  animation: pulseWarning 2s infinite ease-in-out;
+}
+
+@keyframes pulseWarning {
+  0%, 100% { border-color: #fecaca; }
+  50% { border-color: #ef4444; }
+}
+
+.pass-security-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: #10b981;
+  margin-top: 0.35rem;
+  font-weight: 500;
 }
 
 .btn-reset-filters {
@@ -1320,8 +1465,8 @@ button, input, select, textarea {
   width: 100vw;
   height: 100vh;
   background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(4px);
-  z-index: 1000;
+  backdrop-filter: blur(6px);
+  z-index: 20000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1727,14 +1872,39 @@ button, input, select, textarea {
    ========================================================================== */
 @media (max-width: 768px) {
   body {
-    padding-bottom: 76px;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Sticky App Header on Mobile */
+  header.app-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
   }
 
   .nav-container {
-    padding: 0.75rem 1rem;
+    padding: 0.65rem 1rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
+  }
+
+  .nav-brand {
+    gap: 0.5rem;
+  }
+
+  .brand-logo-img {
+    width: 34px;
+    height: 34px;
+  }
+
+  .logo-text {
+    font-size: 1.18rem;
   }
 
   /* Hide Desktop Top Navbar Buttons on Mobile */
@@ -1745,12 +1915,440 @@ button, input, select, textarea {
   .mobile-top-actions {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.45rem;
   }
 
   .btn-header-install {
-    padding: 0.35rem 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.85rem;
     font-size: 0.82rem;
+    font-weight: 700;
+    border-radius: var(--radius-full);
+    background: #fef2f2;
+    color: var(--blood-primary);
+    border: 1px solid #fecaca;
+  }
+
+  .btn-header-install:active {
+    transform: scale(0.96);
+  }
+
+  .btn-mobile-logout {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+    border-radius: var(--radius-full);
+    background: #fee2e2;
+    color: var(--blood-dark);
+    border: 1px solid #fca5a5;
+  }
+
+  /* Cloud status bar on mobile */
+  .cloud-status-strip {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  /* Hero Section */
+  .hero-section {
+    padding: 1.25rem 1rem 0.75rem;
+  }
+
+  .hero-content {
+    max-width: 100%;
+  }
+
+  .hero-title {
+    font-size: 1.55rem;
+    line-height: 1.3;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Quick Blood Chips on Mobile: horizontal swipe with edge padding */
+  .quick-blood-chips-scroll {
+    margin: 0.75rem -1rem 1.25rem -1rem;
+    padding: 0 1rem;
+  }
+
+  .quick-chips-label {
+    text-align: left;
+    padding: 0 0.25rem;
+    font-size: 0.82rem;
+  }
+
+  .quick-blood-chips {
+    justify-content: flex-start;
+    padding-bottom: 0.25rem;
+  }
+
+  .blood-chip {
+    padding: 0.45rem 1rem;
+    font-size: 0.9rem;
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Filter Card Mobile */
+  .filter-card {
+    padding: 1.15rem;
+    border-radius: 20px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+  }
+
+  .filter-grid {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+
+  .filter-group label {
+    font-size: 0.82rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .select-wrapper select,
+  .form-group input,
+  .form-group select {
+    font-size: 16px !important; /* 16px strictly prevents iOS Safari viewport auto-zoom! */
+    padding: 0.75rem 0.9rem;
+    min-height: 48px;
+    border-radius: 12px;
+  }
+
+  .btn-reset-filters {
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
+
+  /* Donors Directory Section */
+  .donors-section {
+    padding: 1.25rem 1rem 2rem;
+  }
+
+  .section-container {
+    padding: 0;
+  }
+
+  .section-title {
+    font-size: 1.35rem;
+  }
+
+  .section-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .donors-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .donor-card {
+    border-radius: 20px;
+    padding: 1.15rem;
+    border: 1.5px solid #edf2f7;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+  }
+
+  .donor-card-top {
+    gap: 0.85rem;
+  }
+
+  .donor-badge-group {
+    width: 52px;
+    height: 52px;
+    font-size: 1.25rem;
+    border-radius: 14px;
+    flex-shrink: 0;
+  }
+
+  .donor-card-name {
+    font-size: 1.15rem;
+  }
+
+  .donor-card-location {
+    font-size: 0.85rem;
+  }
+
+  .status-pill {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.78rem;
+    border-radius: 10px;
+  }
+
+  .donor-card-meta {
+    padding: 0.75rem 0.9rem;
+    border-radius: 12px;
+    font-size: 0.82rem;
+  }
+
+  .btn-call-active,
+  .btn-call-locked {
+    min-height: 50px;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: 14px;
+    letter-spacing: 0.01em;
+  }
+
+  .btn-call-active:active,
+  .btn-call-locked:active {
+    transform: scale(0.97);
+  }
+
+  /* ==========================================================================
+     Native Mobile Bottom-Sheet Modals
+     ========================================================================== */
+  .modal-backdrop {
+    padding: 0 !important;
+    align-items: flex-end !important;
+    justify-content: center !important;
+    z-index: 20000 !important;
+    background: rgba(15, 23, 42, 0.7) !important;
+  }
+
+  .modal-card,
+  .modal-card-sm {
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 88vh !important;
+    border-radius: 24px 24px 0 0 !important;
+    padding: 1.25rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom, 0px)) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    box-shadow: 0 -12px 35px rgba(0, 0, 0, 0.3) !important;
+    animation: slideUpMobile 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    position: relative;
+  }
+
+  /* Native Mobile Bottom Sheet Grab Handle Indicator */
+  .modal-card::before {
+    content: '';
+    display: block;
+    width: 44px;
+    height: 5px;
+    background: #cbd5e1;
+    border-radius: 5px;
+    margin: -0.5rem auto 1rem auto;
+  }
+
+  @keyframes slideUpMobile {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .modal-header {
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .modal-title {
+    font-size: 1.25rem;
+  }
+
+  .modal-subtitle {
+    font-size: 0.82rem;
+  }
+
+  .modal-close {
+    font-size: 1.6rem;
+    padding: 0.25rem;
+  }
+
+  .modal-footer {
+    flex-direction: column-reverse;
+    gap: 0.65rem;
+    margin-top: 1.5rem;
+  }
+
+  .modal-footer button {
+    width: 100%;
+    min-height: 48px;
+    font-size: 1rem;
+    font-weight: 700;
+    justify-content: center;
+    border-radius: 12px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+
+  .form-group.full-width {
+    grid-column: span 1;
+  }
+
+  /* Admin Panel Mobile Layout */
+  .admin-container {
+    padding: 1rem 0.75rem 2rem;
+  }
+
+  .admin-topbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .admin-title {
+    font-size: 1.35rem;
+  }
+
+  .admin-top-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .admin-top-actions button {
+    width: 100%;
+    min-height: 44px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.5rem 0.6rem;
+    justify-content: center;
+    border-radius: 10px;
+  }
+
+  .admin-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .admin-stat-card {
+    padding: 1rem;
+    border-radius: 14px;
+  }
+
+  .admin-stat-title {
+    font-size: 0.78rem;
+  }
+
+  .admin-stat-value {
+    font-size: 1.65rem;
+  }
+
+  .admin-stat-sub {
+    font-size: 0.7rem;
+  }
+
+  .table-responsive {
+    border-radius: 14px;
+    border: 1px solid var(--border-subtle);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 0.75rem 0.75rem;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+
+  .btn-table-action {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.78rem;
+    min-height: 34px;
+    border-radius: 8px;
+  }
+
+  /* Donor Dashboard Mobile Layout */
+  .dashboard-container {
+    padding: 1rem 0.75rem 2rem;
+  }
+
+  .dashboard-header-card {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1.25rem;
+    border-radius: 20px;
+    gap: 1rem;
+  }
+
+  .dashboard-user-info {
+    align-items: center;
+    gap: 0.85rem;
+  }
+
+  .dash-donor-name {
+    font-size: 1.35rem;
+  }
+
+  .dash-meta-tags {
+    gap: 0.4rem;
+  }
+
+  .dashboard-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .dashboard-actions button {
+    width: 100%;
+    min-height: 44px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    justify-content: center;
+    border-radius: 12px;
+  }
+
+  .cooldown-action-card {
+    border-radius: 20px;
+    padding: 1.25rem;
+  }
+
+  .cooldown-card-body {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.25rem;
+  }
+
+  .cooldown-trigger-side {
+    width: 100%;
+  }
+
+  .btn-donate-now {
+    width: 100%;
+    min-height: 52px;
+    font-size: 1.05rem;
+    justify-content: center;
+    border-radius: 14px;
+  }
+
+  .timer-countdown-grid {
+    gap: 0.35rem;
+    justify-content: space-between;
+  }
+
+  .timer-unit {
+    flex: 1;
+    min-width: 0;
+    padding: 0.5rem 0.25rem;
+    border-radius: 10px;
+  }
+
+  .unit-val {
+    font-size: 1.3rem;
+  }
+
+  .unit-lbl {
+    font-size: 0.7rem;
+  }
+
+  .donor-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
 
   /* Native Mobile Bottom Navigation Bar */
@@ -1761,7 +2359,7 @@ button, input, select, textarea {
     left: 0;
     right: 0;
     width: 100%;
-    height: 62px;
+    height: calc(62px + env(safe-area-inset-bottom, 0px));
     background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -1814,7 +2412,6 @@ button, input, select, textarea {
     transform: scale(0.94);
   }
 
-  /* Highlight Center Registration Button */
   .mobile-nav-item.mobile-nav-highlight {
     position: relative;
     top: -8px;
@@ -1859,36 +2456,5 @@ button, input, select, textarea {
     right: -10px;
     padding: 0.05rem 0.35rem;
     font-size: 0.65rem;
-  }
-
-  .hero-title {
-    font-size: 1.85rem;
-  }
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-  .form-group.full-width {
-    grid-column: span 1;
-  }
-  .cooldown-card-body {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .cooldown-trigger-side {
-    width: 100%;
-  }
-  .btn-donate-now {
-    width: 100%;
-    justify-content: center;
-  }
-  .timer-countdown-grid {
-    gap: 0.4rem;
-  }
-  .timer-unit {
-    min-width: 55px;
-    padding: 0.5rem 0.4rem;
-  }
-  .unit-val {
-    font-size: 1.4rem;
   }
 }

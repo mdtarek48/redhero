@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Donors Collection (রক্তদাতাদের ডাটাবেজ)
+    match /donors/{donorId} {
+      // সাধারণ ব্যবহারকারী এবং ডোনাররা তালিকা দেখতে পারবে
+      allow read: if true;
+      
+      // নতুন রেজিস্ট্রেশন: কোনো প্লেইনটেক্সট পাসওয়ার্ড থাকা যাবে না, শুধুমাত্র এনক্রিপ্টকৃত passwordHash থাকতে হবে
+      allow create: if request.resource.data.name is string
+                    && request.resource.data.phone is string
+                    && request.resource.data.bloodGroup is string
+                    && (!('password' in request.resource.data))
+                    && ('passwordHash' in request.resource.data);
+                    
+      // তথ্য আপডেট (রক্তদানের তারিখ, অনুমোদন বা কুলডাউন পরিবর্তন): কোনো প্লেইন পাসওয়ার্ড দেওয়া যাবে না
+      allow update: if (!('password' in request.resource.data));
+      
+      // প্রোফাইল ডিলিট করার অনুমতি
+      allow delete: if true;
+    }
+    
+    // Admins Collection (এডমিনদের ডাটাবেজ - সুরক্ষিত)
+    match /admins/{adminId} {
+      // এডমিন তালিকা রিড করার অনুমতি
+      allow read: if true;
+      
+      // নতুন এডমিন তৈরি বা পাসওয়ার্ড আপডেট: প্লেইনটেক্সট পাসওয়ার্ড সম্পূর্ণ নিষিদ্ধ, শুধুমাত্র passwordHash থাকতে হবে
+      allow create, update: if (!('password' in request.resource.data))
+                            && ('passwordHash' in request.resource.data);
+                            
+      // এডমিন রিমুভ করার অনুমতি
+      allow delete: if true;
+    }
+  }
+}

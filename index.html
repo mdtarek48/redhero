@@ -120,6 +120,25 @@
       <div class="hero-content">
         <h1 class="hero-title">এক ব্যাগ রক্ত, একটি নতুন জীবন</h1>
 
+        <!-- Quick Blood Group Horizontal Chips for Instant Mobile Selection -->
+        <div class="quick-blood-chips-scroll" id="quickBloodChipsContainer">
+          <div class="quick-chips-label">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="color:var(--blood-primary);"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
+            <span>দ্রুত রক্তের গ্রুপ নির্বাচন করুন:</span>
+          </div>
+          <div class="quick-blood-chips" id="quickBloodChips">
+            <button type="button" class="blood-chip active" data-group="ALL" onclick="selectQuickBloodGroup('ALL')">সকল গ্রুপ</button>
+            <button type="button" class="blood-chip" data-group="A+" onclick="selectQuickBloodGroup('A+')">A+</button>
+            <button type="button" class="blood-chip" data-group="A-" onclick="selectQuickBloodGroup('A-')">A-</button>
+            <button type="button" class="blood-chip" data-group="B+" onclick="selectQuickBloodGroup('B+')">B+</button>
+            <button type="button" class="blood-chip" data-group="B-" onclick="selectQuickBloodGroup('B-')">B-</button>
+            <button type="button" class="blood-chip" data-group="O+" onclick="selectQuickBloodGroup('O+')">O+</button>
+            <button type="button" class="blood-chip" data-group="O-" onclick="selectQuickBloodGroup('O-')">O-</button>
+            <button type="button" class="blood-chip" data-group="AB+" onclick="selectQuickBloodGroup('AB+')">AB+</button>
+            <button type="button" class="blood-chip" data-group="AB-" onclick="selectQuickBloodGroup('AB-')">AB-</button>
+          </div>
+        </div>
+
         <!-- Search & Filter Card -->
         <div class="filter-card">
           <div class="filter-grid">
@@ -225,6 +244,10 @@
           </div>
         </div>
         <div class="dashboard-actions">
+          <button class="btn-secondary" onclick="openDonorChangePasswordModal()" title="আপনার পাসওয়ার্ড পরিবর্তন করুন">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <span>পাসওয়ার্ড পরিবর্তন</span>
+          </button>
           <button class="btn-outline-danger" onclick="handleLogout()">লগআউট করুন</button>
         </div>
       </div>
@@ -330,6 +353,10 @@
           <h2 class="admin-title">রক্তদাতা পরিচালনা ও অনুমোদন ড্যাশবোর্ড</h2>
         </div>
         <div class="admin-top-actions">
+          <button class="btn-secondary" id="btnMasterChangePass" onclick="openMasterChangePasswordModal()" style="display:none;" title="মাস্টার এডমিন পাসওয়ার্ড পরিবর্তন">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <span>মাস্টার পাসওয়ার্ড পরিবর্তন</span>
+          </button>
           <button class="btn-primary" onclick="openAddDonorModal()">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             <span>ম্যানুয়াল ডোনার যোগ করুন</span>
@@ -443,7 +470,7 @@
               <tr>
                 <th>এডমিনের নাম</th>
                 <th>মোবাইল নম্বর (লগইন)</th>
-                <th>পাসওয়ার্ড</th>
+                <th>নিরাপত্তা স্ট্যাটাস</th>
                 <th>পদবী</th>
                 <th style="text-align: right;">অ্যাকশন</th>
               </tr>
@@ -579,8 +606,17 @@
           </div>
 
           <div class="form-group">
-            <label for="regPassword">পাসওয়ার্ড তৈরি করুন *</label>
-            <input type="password" id="regPassword" required minlength="4" placeholder="কমপক্ষে ৪ অক্ষরের পাসওয়ার্ড">
+            <label for="regPassword">গোপন পাসওয়ার্ড তৈরি করুন *</label>
+            <div class="password-input-wrap">
+              <input type="password" id="regPassword" required minlength="6" placeholder="কমপক্ষে ৬ অক্ষরের শক্তিশালী পাসওয়ার্ড" autocomplete="new-password">
+              <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('regPassword', this)" title="পাসওয়ার্ড দেখুন/লুকান">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              </button>
+            </div>
+            <div class="pass-security-indicator">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              <span>পাসওয়ার্ডটি এন্ড-টু-এন্ড এনক্রিপ্ট হয়ে ক্লাউডে সংরক্ষিত হবে</span>
+            </div>
           </div>
         </div>
 
@@ -603,19 +639,30 @@
         <button class="modal-close" onclick="closeModal('unifiedLoginModal')">&times;</button>
       </div>
 
+      <!-- Brute force lockout warning container -->
+      <div id="loginLockoutContainer" style="display:none;" class="lockout-warning-banner">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        <div id="loginLockoutMsg">অতিরিক্ত ভুল চেষ্টার কারণে লগইন সাময়িকভাবে লক রয়েছে।</div>
+      </div>
+
       <form id="unifiedLoginForm" onsubmit="handleUnifiedLogin(event)" autocomplete="off">
         <div class="form-group">
           <label for="loginPhone">মোবাইল নম্বর</label>
-          <input type="text" id="loginPhone" required placeholder="017XXXXXXXX" autocomplete="off" value="">
+          <input type="tel" id="loginPhone" required placeholder="017XXXXXXXX" autocomplete="tel" value="">
         </div>
         <div class="form-group">
-          <label for="loginPassword">পাসওয়ার্ড</label>
-          <input type="password" id="loginPassword" required placeholder="আপনার পাসওয়ার্ড দিন" autocomplete="new-password" value="">
+          <label for="loginPassword">পাসওয়ার্ড</label>
+          <div class="password-input-wrap">
+            <input type="password" id="loginPassword" required placeholder="আপনার পাসওয়ার্ড দিন" autocomplete="current-password" value="">
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('loginPassword', this)" title="পাসওয়ার্ড দেখুন/লুকান">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
         </div>
 
         <div class="modal-footer">
           <button type="button" class="btn-secondary" onclick="openRegisterFromLogin()">নতুন ডোনার রেজিস্ট্রেশন</button>
-          <button type="submit" class="btn-primary">লগইন করুন</button>
+          <button type="submit" class="btn-primary" id="btnUnifiedLoginSubmit">লগইন করুন</button>
         </div>
       </form>
     </div>
@@ -728,12 +775,121 @@
 
         <div class="form-group">
           <label for="newAdminPassword">লগইন পাসওয়ার্ড *</label>
-          <input type="text" id="newAdminPassword" required placeholder="পাসওয়ার্ড দিন" autocomplete="new-password">
+          <div class="password-input-wrap">
+            <input type="password" id="newAdminPassword" required minlength="6" placeholder="কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড" autocomplete="new-password">
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('newAdminPassword', this)" title="পাসওয়ার্ড দেখুন/লুকান">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
+          <div class="pass-security-indicator">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            <span>পাসওয়ার্ডটি সর্বোচ্চ নিরাপত্তায় হ্যাশকৃত থাকবে</span>
+          </div>
         </div>
 
         <div class="modal-footer">
           <button type="button" class="btn-secondary" onclick="closeModal('addAdminModal')">বাতিল</button>
           <button type="submit" class="btn-primary">এডমিন যুক্ত করুন</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- DONOR CHANGE PASSWORD MODAL -->
+  <div id="donorChangePassModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card modal-card-sm">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">পাসওয়ার্ড পরিবর্তন করুন</h3>
+          <p class="modal-subtitle">আপনার একাউন্টটি সুরক্ষিত রাখতে শক্তিশালী পাসওয়ার্ড দিন</p>
+        </div>
+        <button class="modal-close" onclick="closeModal('donorChangePassModal')">&times;</button>
+      </div>
+
+      <form id="donorChangePassForm" onsubmit="handleDonorChangePassword(event)">
+        <div class="form-group">
+          <label for="donorOldPassword">বর্তমান পাসওয়ার্ড *</label>
+          <div class="password-input-wrap">
+            <input type="password" id="donorOldPassword" required placeholder="বর্তমান পাসওয়ার্ড দিন">
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('donorOldPassword', this)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="donorNewPassword">নতুন গোপন পাসওয়ার্ড *</label>
+          <div class="password-input-wrap">
+            <input type="password" id="donorNewPassword" required minlength="6" placeholder="কমপক্ষে ৬ অক্ষর">
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('donorNewPassword', this)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="donorConfirmPassword">নতুন পাসওয়ার্ড নিশ্চিত করুন *</label>
+          <div class="password-input-wrap">
+            <input type="password" id="donorConfirmPassword" required minlength="6" placeholder="আবার নতুন পাসওয়ার্ড লিখুন">
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('donorConfirmPassword', this)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('donorChangePassModal')">বাতিল</button>
+          <button type="submit" class="btn-primary">পাসওয়ার্ড আপডেট করুন</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MASTER ADMIN CHANGE PASSWORD MODAL -->
+  <div id="masterChangePassModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card modal-card-sm">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">মাস্টার এডমিন পাসওয়ার্ড পরিবর্তন</h3>
+          <p class="modal-subtitle">সর্বোচ্চ সুরক্ষার জন্য নতুন একটি গোপন পাসওয়ার্ড দিন</p>
+        </div>
+        <button class="modal-close" onclick="closeModal('masterChangePassModal')">&times;</button>
+      </div>
+
+      <form id="masterChangePassForm" onsubmit="handleMasterChangePassword(event)">
+        <div class="form-group">
+          <label for="masterOldPassword">বর্তমান মাস্টার পাসওয়ার্ড *</label>
+          <div class="password-input-wrap">
+            <input type="password" id="masterOldPassword" required placeholder="বর্তমান পাসওয়ার্ড দিন">
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('masterOldPassword', this)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="masterNewPassword">নতুন মাস্টার পাসওয়ার্ড *</label>
+          <div class="password-input-wrap">
+            <input type="password" id="masterNewPassword" required minlength="6" placeholder="কমপক্ষে ৬ অক্ষর">
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('masterNewPassword', this)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="masterConfirmPassword">নতুন পাসওয়ার্ড নিশ্চিত করুন *</label>
+          <div class="password-input-wrap">
+            <input type="password" id="masterConfirmPassword" required minlength="6" placeholder="আবার নতুন পাসওয়ার্ড লিখুন">
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('masterConfirmPassword', this)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('masterChangePassModal')">বাতিল</button>
+          <button type="submit" class="btn-primary">মাস্টার পাসওয়ার্ড পরিবর্তন করুন</button>
         </div>
       </form>
     </div>
