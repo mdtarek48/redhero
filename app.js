@@ -374,6 +374,10 @@ function updateNavbarAuth() {
     btnMasterPass.style.display = (state.isAdmin && state.isMasterAdmin) ? 'inline-flex' : 'none';
   }
 
+  if (state.currentView === 'public') {
+    renderPublicDonors();
+  }
+
   updateMobileBottomNavActive();
 }
 
@@ -602,6 +606,15 @@ function renderPublicDonors() {
             </a>
           `}
         </div>
+
+        ${state.isAdmin ? `
+          <div class="card-admin-action">
+            <button class="btn-donor-card-edit" onclick="adminOpenEditDonorModal('${donor.id}')" title="এডমিন এডিট">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              <span>তথ্য এডিট করুন (এডমিন)</span>
+            </button>
+          </div>
+        ` : ''}
       </div>
     `;
   }).join('');
@@ -1123,6 +1136,9 @@ function renderAdminPanel() {
         <td><span class="status-pill pending">রিভিউ প্রয়োজন</span></td>
         <td>
           <div class="action-btns-wrap">
+            <button class="btn-table-action edit" onclick="adminOpenEditDonorModal('${donor.id}')" title="সকল তথ্য এডিট করুন">
+              ✏️ এডিট
+            </button>
             <button class="btn-table-action approve" onclick="adminApproveDonor('${donor.id}')">
               ✅ অনুমোদন (Approve)
             </button>
@@ -1186,6 +1202,9 @@ function renderApprovedDonorsTable(list) {
         </td>
         <td>
           <div class="action-btns-wrap">
+            <button class="btn-table-action edit" onclick="adminOpenEditDonorModal('${donor.id}')" title="সকল তথ্য এডিট করুন">
+              ✏️ এডিট
+            </button>
             <button class="btn-table-action cooldown-toggle" onclick="adminToggleCooldown('${donor.id}')" title="৯০ দিনের অবস্থা পরিবর্তন">
               ${inCooldown ? '🔓 কল আনলক করুন' : '⏳ ৯০ দিন বিশ্রাম দিন'}
             </button>
@@ -1361,6 +1380,232 @@ async function handleAdminAddDonor(e) {
   } catch (err) {
     alert('ম্যানুয়াল যোগ ব্যর্থ: ' + err.message);
   }
+}
+
+// ==========================================================================
+// Admin Donor Edit Management (Edit All Donor Information)
+// ==========================================================================
+function adminOpenEditDonorModal(donorId) {
+  if (!state.isAdmin) {
+    alert('শুধুমাত্র এডমিন ডোনারের তথ্য সম্পাদন করতে পারবেন।');
+    return;
+  }
+
+  const donor = state.donors.find(d => d.id === donorId);
+  if (!donor) {
+    alert('ডোনারের তথ্য পাওয়া যায়নি!');
+    return;
+  }
+
+  const form = document.getElementById('adminEditDonorForm');
+  if (form) form.reset();
+
+  document.getElementById('editDonorId').value = donor.id;
+  document.getElementById('editDonorName').value = donor.name || '';
+  document.getElementById('editDonorBloodGroup').value = donor.bloodGroup || 'A+';
+  document.getElementById('editDonorPhone').value = donor.phone || '';
+
+  // Match or add district dynamically
+  const districtSelect = document.getElementById('editDonorDistrict');
+  if (districtSelect) {
+    let found = false;
+    for (let i = 0; i < districtSelect.options.length; i++) {
+      if (districtSelect.options[i].value === donor.district) {
+        districtSelect.selectedIndex = i;
+        found = true;
+        break;
+      }
+    }
+    if (!found && donor.district) {
+      const opt = document.createElement('option');
+      opt.value = donor.district;
+      opt.textContent = donor.district;
+      districtSelect.appendChild(opt);
+      districtSelect.value = donor.district;
+    }
+  }
+
+  document.getElementById('editDonorArea').value = donor.area || '';
+  document.getElementById('editDonorApprovalStatus').value = donor.approvalStatus || 'APPROVED';
+
+  const inCooldown = isDonorInCooldown(donor);
+  document.getElementById('editDonorCooldownStatus').value = inCooldown ? 'COOLDOWN' : 'AVAILABLE';
+
+  // Last donation date (format to YYYY-MM-DD for date input)
+  const lastDonationInput = document.getElementById('editDonorLastDonation');
+  if (donor.lastDonationDate) {
+    try {
+      const d = new Date(donor.lastDonationDate);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      lastDonationInput.value = `${yyyy}-${mm}-${dd}`;
+    } catch(e) {
+      lastDonationInput.value = '';
+    }
+  } else {
+    lastDonationInput.value = '';
+  }
+
+  // Total donations
+  document.getElementById('editDonorTotalDonations').value = donor.totalDonations !== undefined ? donor.totalDonations : 0;
+
+  // Registered date
+  const regDateInput = document.getElementById('editDonorRegisteredAt');
+  if (donor.registeredAt) {
+    regDateInput.value = donor.registeredAt.split('T')[0];
+  } else {
+    regDateInput.value = new Date().toISOString().split('T')[0];
+  }
+
+  // Reset optional new password field
+  const passInput = document.getElementById('editDonorNewPassword');
+  if (passInput) {
+    passInput.value = '';
+    passInput.type = 'password';
+  }
+
+  // Set modal header text
+  const titleEl = document.getElementById('editDonorModalTitle');
+  if (titleEl) {
+    titleEl.textContent = `✏️ ${donor.name}-এর তথ্য সম্পাদন`;
+  }
+  const subEl = document.getElementById('editDonorModalSubtitle');
+  if (subEl) {
+    subEl.textContent = `রক্তের গ্রুপ: ${donor.bloodGroup} • মোবাইল: ${donor.phone} • জেলা: ${donor.district}`;
+  }
+
+  openModal('adminEditDonorModal');
+}
+
+function toggleEditDonationDateInput() {
+  const st = document.getElementById('editDonorCooldownStatus').value;
+  const lastDonationInput = document.getElementById('editDonorLastDonation');
+  if (st === 'COOLDOWN' && !lastDonationInput.value) {
+    lastDonationInput.value = new Date().toISOString().split('T')[0];
+  }
+}
+
+async function handleAdminEditDonor(e) {
+  e.preventDefault();
+
+  if (!state.isAdmin) {
+    alert('শুধুমাত্র এডমিন ডোনারের তথ্য পরিবর্তন করতে পারবেন।');
+    return;
+  }
+
+  const donorId = document.getElementById('editDonorId').value;
+  const name = document.getElementById('editDonorName').value.trim();
+  const bloodGroup = document.getElementById('editDonorBloodGroup').value;
+  const phone = document.getElementById('editDonorPhone').value.trim();
+  const district = document.getElementById('editDonorDistrict').value;
+  const area = document.getElementById('editDonorArea').value.trim();
+  const approvalStatus = document.getElementById('editDonorApprovalStatus').value;
+  const cooldownChoice = document.getElementById('editDonorCooldownStatus').value;
+  const lastDonationInput = document.getElementById('editDonorLastDonation').value;
+  const totalDonations = parseInt(document.getElementById('editDonorTotalDonations').value, 10) || 0;
+  const registeredAt = document.getElementById('editDonorRegisteredAt').value || new Date().toISOString().split('T')[0];
+  const newPassword = document.getElementById('editDonorNewPassword').value.trim();
+
+  const cleanPhone = normalizePhoneSalt(phone);
+  if (!/^01[3-9]\d{8}$/.test(cleanPhone)) {
+    alert('অনুগ্রহ করে সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন (উদাঃ 01XXXXXXXXX)');
+    return;
+  }
+
+  // Check duplicate phone with other donors
+  const duplicate = state.donors.find(d => d.id !== donorId && normalizePhoneSalt(d.phone) === cleanPhone);
+  if (duplicate) {
+    alert(`এই মোবাইল নম্বরটি (${phone}) ইতিমধ্যে "${duplicate.name}" ডোনারের একাউন্টে ব্যবহৃত হচ্ছে!`);
+    return;
+  }
+
+  const existingDonor = state.donors.find(d => d.id === donorId);
+  let cooldownUntil = 0;
+  let lastDonationDate = null;
+
+  if (cooldownChoice === 'COOLDOWN') {
+    if (lastDonationInput) {
+      const inputTime = new Date(lastDonationInput).getTime();
+      lastDonationDate = new Date(lastDonationInput).toISOString();
+      const calculatedCooldown = inputTime + COOLDOWN_DURATION_MS;
+      cooldownUntil = calculatedCooldown > Date.now() ? calculatedCooldown : (Date.now() + COOLDOWN_DURATION_MS);
+    } else {
+      lastDonationDate = new Date().toISOString();
+      cooldownUntil = Date.now() + COOLDOWN_DURATION_MS;
+    }
+  } else {
+    cooldownUntil = 0;
+    if (lastDonationInput) {
+      lastDonationDate = new Date(lastDonationInput).toISOString();
+    } else if (existingDonor) {
+      lastDonationDate = existingDonor.lastDonationDate || null;
+    }
+  }
+
+  const updates = {
+    name,
+    bloodGroup,
+    phone,
+    district,
+    area,
+    approvalStatus,
+    cooldownUntil,
+    lastDonationDate,
+    totalDonations,
+    registeredAt
+  };
+
+  if (newPassword) {
+    const strength = validatePasswordStrength(newPassword);
+    if (!strength.valid) {
+      alert('নতুন পাসওয়ার্ড: ' + strength.message);
+      return;
+    }
+    const newHash = await hashPassword(newPassword, cleanPhone);
+    updates.passwordHash = newHash;
+  }
+
+  const submitBtn = document.getElementById('btnSaveEditDonor');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'সংরক্ষণ হচ্ছে...';
+  }
+
+  try {
+    if (state.usingFirebase) {
+      try {
+        await updateDonorInCloud(donorId, updates);
+      } catch (cloudErr) {
+        console.warn('Cloud update warning (fallback to local state):', cloudErr);
+      }
+    }
+
+    const idx = state.donors.findIndex(d => d.id === donorId);
+    if (idx !== -1) {
+      state.donors[idx] = { ...state.donors[idx], ...updates };
+      localStorage.setItem(STORAGE_DONORS_BACKUP_KEY, JSON.stringify(sanitizeDonorsList(state.donors)));
+      onDonorsUpdated();
+    }
+
+    closeModal('adminEditDonorModal');
+    showToast(`✅ ডোনার ${name}-এর সকল তথ্য সফলভাবে আপডেট হয়েছে!`, 'success');
+  } catch (err) {
+    console.error('Failed to update donor:', err);
+    alert('তথ্য আপডেট ব্যর্থ হয়েছে: ' + err.message);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = '💾 পরিবর্তন সংরক্ষণ করুন';
+    }
+  }
+}
+
+function adminDeleteDonorFromEditModal() {
+  const donorId = document.getElementById('editDonorId').value;
+  if (!donorId) return;
+  closeModal('adminEditDonorModal');
+  adminDeleteDonor(donorId);
 }
 
 // ==========================================================================
@@ -1679,6 +1924,10 @@ window.adminDeleteDonor = adminDeleteDonor;
 window.openAddDonorModal = openAddDonorModal;
 window.toggleManualDonationDateInput = toggleManualDonationDateInput;
 window.handleAdminAddDonor = handleAdminAddDonor;
+window.adminOpenEditDonorModal = adminOpenEditDonorModal;
+window.handleAdminEditDonor = handleAdminEditDonor;
+window.toggleEditDonationDateInput = toggleEditDonationDateInput;
+window.adminDeleteDonorFromEditModal = adminDeleteDonorFromEditModal;
 window.openAddAdminModal = openAddAdminModal;
 window.handleCreateAdmin = handleCreateAdmin;
 window.removeAdminAccount = removeAdminAccount;

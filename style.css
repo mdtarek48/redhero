@@ -918,6 +918,38 @@ button, input, select, textarea {
   color: #94a3b8;
 }
 
+/* Card Admin Action Bar (Website & App) */
+.card-admin-action {
+  margin-top: 0.75rem;
+  padding-top: 0.65rem;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.btn-donor-card-edit {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #0284c7;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-donor-card-edit:hover {
+  background: #0284c7;
+  color: white;
+  border-color: #0284c7;
+  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.25);
+  transform: translateY(-1px);
+}
+
 /* Empty State */
 .empty-state {
   text-align: center;
@@ -1388,6 +1420,17 @@ button, input, select, textarea {
   transition: all var(--transition-fast);
 }
 
+.btn-table-action.edit {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+.btn-table-action.edit:hover {
+  background: #0284c7;
+  color: white;
+  border-color: #0284c7;
+}
+
 .btn-table-action.approve {
   background: #d1fae5;
   color: #065f46;
@@ -1493,6 +1536,10 @@ button, input, select, textarea {
 
 .modal-card-sm {
   max-width: 440px;
+}
+
+.modal-card-lg {
+  max-width: 680px;
 }
 
 @keyframes slideUp {

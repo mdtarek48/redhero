@@ -127,10 +127,18 @@ export async function updateDonorInCloud(donorId, updates) {
     throw new Error("ফায়ারবেস এখনও কনফিগার করা হয়নি।");
   }
   const donorRef = doc(db, "donors", donorId);
-  await updateDoc(donorRef, {
-    ...updates,
-    updatedAt: Date.now()
-  });
+  try {
+    await updateDoc(donorRef, {
+      ...updates,
+      updatedAt: Date.now()
+    });
+  } catch (err) {
+    // Fallback: If document does not exist yet or updateDoc fails, use setDoc with merge: true
+    await setDoc(donorRef, {
+      ...updates,
+      updatedAt: Date.now()
+    }, { merge: true });
+  }
 }
 
 // Delete donor from cloud

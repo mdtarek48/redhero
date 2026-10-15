@@ -32,8 +32,8 @@
       navigator.serviceWorker.register('/sw.js').catch(console.warn);
     }
   </script>
-  <script type="module" crossorigin src="/assets/index-zhHS53Ue.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-DTa4x1wV.css">
+  <script type="module" crossorigin src="/assets/index-CT6TXZS4.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-DZbgtqr1.css">
 </head>
 <body>
 
@@ -746,6 +746,196 @@
         <div class="modal-footer">
           <button type="button" class="btn-secondary" onclick="closeModal('adminAddDonorModal')">বাতিল</button>
           <button type="submit" class="btn-primary">ডোনার যুক্ত করুন</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADMIN EDIT DONOR MODAL (Edit All Information) -->
+  <div id="adminEditDonorModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card modal-card-lg">
+      <div class="modal-header">
+        <div>
+          <span class="admin-badge-label" style="display:inline-block; margin-bottom:0.4rem;">সুরক্ষিত এডমিন কন্ট্রোল</span>
+          <h3 class="modal-title" id="editDonorModalTitle">✏️ রক্তদাতার তথ্য পরিবর্তন ও সম্পাদন</h3>
+          <p class="modal-subtitle" id="editDonorModalSubtitle">ডোনারের নাম, রক্তের গ্রুপ, মোবাইল নম্বর, ঠিকানা, স্ট্যাটাস ও পাসওয়ার্ড সহ সকল তথ্য আপডেট করুন</p>
+        </div>
+        <button class="modal-close" onclick="closeModal('adminEditDonorModal')">&times;</button>
+      </div>
+
+      <form id="adminEditDonorForm" onsubmit="handleAdminEditDonor(event)" autocomplete="off">
+        <input type="hidden" id="editDonorId">
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="editDonorName">ডোনারের পূর্ণ নাম *</label>
+            <input type="text" id="editDonorName" required placeholder="উদাঃ মোঃ রফিকুল ইসলাম">
+          </div>
+
+          <div class="form-group">
+            <label for="editDonorBloodGroup">রক্তের গ্রুপ *</label>
+            <select id="editDonorBloodGroup" required>
+              <option value="A+">A+ (এ পজিটিভ)</option>
+              <option value="A-">A- (এ নেগেটিভ)</option>
+              <option value="B+">B+ (বি পজিティブ)</option>
+              <option value="B-">B- (বি নেগেটিভ)</option>
+              <option value="AB+">AB+ (এবি পজিティブ)</option>
+              <option value="AB-">AB- (এবি নেগেটিভ)</option>
+              <option value="O+">O+ (ও পজিティブ)</option>
+              <option value="O-">O- (ও নেগেটিভ)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="editDonorPhone">মোবাইল নম্বর (লগইন ও ডায়াল নম্বর) *</label>
+            <input type="tel" id="editDonorPhone" required pattern="01[3-9][0-9]{8}" placeholder="01XXXXXXXXX">
+          </div>
+
+          <div class="form-group">
+            <label for="editDonorDistrict">জেলা *</label>
+            <select id="editDonorDistrict" required>
+              <option value="">জেলা নির্বাচন করুন</option>
+              <optgroup label="ঢাকা বিভাগ">
+                <option value="ঢাকা">ঢাকা</option>
+                <option value="গাজীপুর">গাজীপুর</option>
+                <option value="নারায়ণগঞ্জ">নারায়ণগঞ্জ</option>
+                <option value="নরসিংদী">নরসিংদী</option>
+                <option value="মানিকগঞ্জ">মানিকগঞ্জ</option>
+                <option value="মুন্সীগঞ্জ">মুন্সীগঞ্জ</option>
+                <option value="কিশোরগঞ্জ">কিশোরগঞ্জ</option>
+                <option value="টাঙ্গাইল">টাঙ্গাইল</option>
+                <option value="ফরিদপুর">ফরিদপুর</option>
+                <option value="রাজবাড়ী">রাজবাড়ী</option>
+                <option value="মাদারীপুর">মাদারীপুর</option>
+                <option value="গোপালগঞ্জ">গোপালগঞ্জ</option>
+                <option value="শরীয়তপুর">শরীয়তপুর</option>
+              </optgroup>
+              <optgroup label="চট্টগ্রাম বিভাগ">
+                <option value="চট্টগ্রাম">চট্টগ্রাম</option>
+                <option value="কক্সবাজার">কক্সবাজার</option>
+                <option value="কুমিল্লা">কুমিল্লা</option>
+                <option value="ফেনী">ফেনী</option>
+                <option value="ব্রাহ্মণবাড়িয়া">ব্রাহ্মণবাড়িয়া</option>
+                <option value="নোয়াখালী">নোয়াখালী</option>
+                <option value="চাঁদপুর">চাঁদপুর</option>
+                <option value="লক্ষ্মীপুর">লক্ষ্মীপুর</option>
+                <option value="রাঙ্গামাটি">রাঙ্গামাটি</option>
+                <option value="খাগড়াছড়ি">খাগড়াছড়ি</option>
+                <option value="বান্দরবান">বান্দরবান</option>
+              </optgroup>
+              <optgroup label="রাজশাহী বিভাগ">
+                <option value="রাজশাহী">রাজশাহী</option>
+                <option value="বগুড়া">বগুড়া</option>
+                <option value="পাবনা">পাবনা</option>
+                <option value="সিরাজগঞ্জ">সিরাজগঞ্জ</option>
+                <option value="নওগাঁ">নওগাঁ</option>
+                <option value="নাটোর">নাটোর</option>
+                <option value="চাঁপাইনবাবগঞ্জ">চাঁপাইনবাবগঞ্জ</option>
+                <option value="জয়পুরহাট">জয়পুরহাট</option>
+              </optgroup>
+              <optgroup label="খুলনা বিভাগ">
+                <option value="খুলনা">খুলনা</option>
+                <option value="যশোর">যশোর</option>
+                <option value="বাগেরহাট">বাগেরহাট</option>
+                <option value="সাতক্ষীরা">সাতক্ষীরা</option>
+                <option value="ঝিনাইদহ">ঝিনাইদহ</option>
+                <option value="কুষ্টিয়া">কুষ্টিয়া</option>
+                <option value="মেহেরপুর">মেহেরপুর</option>
+                <option value="চুয়াডাঙ্গা">চুয়াডাঙ্গা</option>
+                <option value="মাগুরা">মাগুরা</option>
+                <option value="নড়াইল">নড়াইল</option>
+              </optgroup>
+              <optgroup label="বরিশাল বিভাগ">
+                <option value="বরিশাল">বরিশাল</option>
+                <option value="পটুয়াখালী">পটুয়াখালী</option>
+                <option value="ভোলা">ভোলা</option>
+                <option value="পিরোজপুর">পিরোজপুর</option>
+                <option value="বরগুনা">বরগুনা</option>
+                <option value="ঝালকাঠি">ঝালকাঠি</option>
+              </optgroup>
+              <optgroup label="সিলেট বিভাগ">
+                <option value="সিলেট">সিলেট</option>
+                <option value="মৌলভীবাজার">মৌলভীবাজার</option>
+                <option value="হবিগঞ্জ">হবিগঞ্জ</option>
+                <option value="সুনামগঞ্জ">সুনামগঞ্জ</option>
+              </optgroup>
+              <optgroup label="রংপুর বিভাগ">
+                <option value="রংপুর">রংপুর</option>
+                <option value="দিনাজপুর">দিনাজপুর</option>
+                <option value="কুড়িগ্রাম">কুড়িগ্রাম</option>
+                <option value="গাইবান্ধা">গাইবান্ধা</option>
+                <option value="লালমনিরহাট">লালমনিরহাট</option>
+                <option value="নীলফামারী">নীলফামারী</option>
+                <option value="পঞ্চগড়">পঞ্চগড়</option>
+                <option value="ঠাকুরগাঁও">ঠাকুরগাঁও</option>
+              </optgroup>
+              <optgroup label="ময়মনসিংহ বিভাগ">
+                <option value="ময়মনসিংহ">ময়মনসিংহ</option>
+                <option value="জামালপুর">জামালপুর</option>
+                <option value="নেত্রকোণা">নেত্রকোণা</option>
+                <option value="শেরপুর">শেরপুর</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="editDonorArea">উপজেলা / এলাকা / বর্তমান ঠিকানা *</label>
+            <input type="text" id="editDonorArea" required placeholder="উদাঃ ধানমন্ডি, বাড্ডা, বা সদর">
+          </div>
+
+          <div class="form-group">
+            <label for="editDonorApprovalStatus">অনুমোদন অবস্থা (Approval Status) *</label>
+            <select id="editDonorApprovalStatus" required>
+              <option value="APPROVED">✅ অনুমোদিত (APPROVED - সাইটে লাইভ থাকবে)</option>
+              <option value="PENDING">⏳ পেন্ডিং রিভিউ (PENDING - সাধারণ সাইটে দেখাবে না)</option>
+              <option value="REJECTED">❌ বাতিলকৃত (REJECTED - কল ও প্রোফাইল বন্ধ)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="editDonorCooldownStatus">৯০ দিনের কাউন্টডাউন ও কল অবস্থা *</label>
+            <select id="editDonorCooldownStatus" onchange="toggleEditDonationDateInput()">
+              <option value="AVAILABLE">🟢 প্রস্তুত (কল খোলা & রক্তদানে সক্ষম)</option>
+              <option value="COOLDOWN">⏳ বিশ্রামে আছেন (৯০ দিনের কাউন্টডাউন & কল লক)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="editDonorLastDonation">সর্বশেষ রক্তদানের তারিখ</label>
+            <input type="date" id="editDonorLastDonation">
+            <small class="field-hint">বিশ্রামে থাকলে এই তারিখ অনুযায়ী ৯০ দিন গণনা হবে</small>
+          </div>
+
+          <div class="form-group">
+            <label for="editDonorTotalDonations">মোট কতবার রক্ত দিয়েছেন</label>
+            <input type="number" id="editDonorTotalDonations" min="0" placeholder="0">
+          </div>
+
+          <div class="form-group">
+            <label for="editDonorRegisteredAt">রেজিস্ট্রেশনের তারিখ</label>
+            <input type="date" id="editDonorRegisteredAt">
+          </div>
+
+          <div class="form-group full-width">
+            <label for="editDonorNewPassword">পাসওয়ার্ড পরিবর্তন / রিসেট (ঐচ্ছিক)</label>
+            <div class="password-input-wrap">
+              <input type="password" id="editDonorNewPassword" placeholder="পরিবর্তন না করতে চাইলে ফাঁকা রাখুন" minlength="4" autocomplete="new-password">
+              <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('editDonorNewPassword', this)" title="পাসওয়ার্ড দেখুন/লুকান">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              </button>
+            </div>
+            <small class="field-hint">💡 ডোনার পাসওয়ার্ড ভুলে গেলে এখান থেকে নতুন পাসওয়ার্ড সেট করে দেওয়া যাবে। পরিবর্তন না চাইলে খালি রাখুন।</small>
+          </div>
+        </div>
+
+        <div class="modal-footer" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+          <button type="button" class="btn-table-action delete" onclick="adminDeleteDonorFromEditModal()" style="display:inline-flex; align-items:center; gap:0.4rem; padding:0.55rem 1rem;">
+            🗑️ ডোনার মুছুন
+          </button>
+          <div style="display: flex; gap: 0.75rem;">
+            <button type="button" class="btn-secondary" onclick="closeModal('adminEditDonorModal')">বাতিল</button>
+            <button type="submit" id="btnSaveEditDonor" class="btn-primary">💾 পরিবর্তন সংরক্ষণ করুন</button>
+          </div>
         </div>
       </form>
     </div>
