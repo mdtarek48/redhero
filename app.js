@@ -764,7 +764,11 @@ function openCurrentPortal() {
 }
 
 function openRegisterModal() {
-  openModal('registerModal');
+  if (state.isAdmin) {
+    openAddDonorModal();
+  } else {
+    openModal('registerModal');
+  }
 }
 
 function openRegisterFromLogin() {
@@ -971,7 +975,7 @@ async function handleDonorRegister(e) {
     district,
     area,
     passwordHash, // Cryptographically secured!
-    approvalStatus: 'PENDING', // Awaiting Admin Approval
+    approvalStatus: state.isAdmin ? 'APPROVED' : 'PENDING', // Auto-approved if added while admin is logged in
     lastDonationDate,
     cooldownUntil,
     totalDonations: lastDonationDate ? 1 : 0,
@@ -989,6 +993,15 @@ async function handleDonorRegister(e) {
 
     closeModal('registerModal');
     document.getElementById('donorRegisterForm').reset();
+
+    // If registered while logged in as Admin, keep admin session and stay in admin panel
+    if (state.isAdmin) {
+      state.currentDonor = null;
+      switchView('admin');
+      renderAdminPanel();
+      showToast(`✅ ডোনার ${name}-এর তথ্য সফলভাবে যুক্ত ও অনুমোদিত হয়েছে!`, 'success');
+      return;
+    }
 
     state.currentDonor = newDonor;
     state.isAdmin = false;
@@ -1326,6 +1339,11 @@ function toggleManualDonationDateInput() {
 async function handleAdminAddDonor(e) {
   e.preventDefault();
 
+  if (!state.isAdmin) {
+    alert('শুধুমাত্র এডমিন এই সুবিধা ব্যবহার করতে পারবেন।');
+    return;
+  }
+
   const name = document.getElementById('manualName').value.trim();
   const bloodGroup = document.getElementById('manualBloodGroup').value;
   const phone = document.getElementById('manualPhone').value.trim();
@@ -1333,6 +1351,21 @@ async function handleAdminAddDonor(e) {
   const area = document.getElementById('manualArea').value.trim();
   const statusChoice = document.getElementById('manualStatus').value;
   const lastDonationDateInput = document.getElementById('manualLastDonation').value;
+  const customPassword = document.getElementById('manualPassword')?.value?.trim();
+  const rawPassword = customPassword || '1234';
+
+  const cleanPhone = normalizePhoneSalt(phone);
+  if (!/^01[3-9]\d{8}$/.test(cleanPhone)) {
+    alert('অনুগ্রহ করে সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন (উদাঃ 01XXXXXXXXX)');
+    return;
+  }
+
+  // Duplicate phone check
+  const duplicate = state.donors.find(d => normalizePhoneSalt(d.phone) === cleanPhone);
+  if (duplicate) {
+    alert(`এই মোবাইল নম্বরটি (${phone}) ইতিমধ্যে "${duplicate.name}" ডোনারের একাউন্টে ব্যবহৃত হচ্ছে!`);
+    return;
+  }
 
   let cooldownUntil = 0;
   let lastDonationDate = null;
@@ -1347,8 +1380,7 @@ async function handleAdminAddDonor(e) {
     }
   }
 
-  const cleanPhone = normalizePhoneSalt(phone);
-  const passwordHash = await hashPassword('1234', cleanPhone);
+  const passwordHash = await hashPassword(rawPassword, cleanPhone);
 
   const manualDonor = {
     id: 'donor_man_' + Date.now(),
@@ -1365,6 +1397,12 @@ async function handleAdminAddDonor(e) {
     registeredAt: new Date().toISOString().split('T')[0]
   };
 
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'সংরক্ষণ হচ্ছে...';
+  }
+
   try {
     if (state.usingFirebase) {
       await saveDonorToCloud(manualDonor);
@@ -1376,9 +1414,22 @@ async function handleAdminAddDonor(e) {
 
     closeModal('adminAddDonorModal');
     document.getElementById('adminAddDonorForm').reset();
-    showToast(`ডোনার ${name} সফলভাবে ফায়ারবেস ক্লাউডে যোগ করা হয়েছে!`, 'success');
+
+    // STRICTLY maintain admin state and stay in admin panel
+    state.currentDonor = null;
+    state.isAdmin = true;
+    switchView('admin');
+    renderAdminPanel();
+
+    showToast(`✅ ডোনার ${name} সফলভাবে এডমিন প্যানেল থেকে ক্লাউডে যুক্ত হয়েছে! (পাসওয়ার্ড: ${rawPassword})`, 'success');
   } catch (err) {
+    console.error('Failed to add donor manually:', err);
     alert('ম্যানুয়াল যোগ ব্যর্থ: ' + err.message);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'ডোনার যুক্ত করুন';
+    }
   }
 }
 
@@ -1505,7 +1556,7 @@ async function handleAdminEditDonor(e) {
   const lastDonationInput = document.getElementById('editDonorLastDonation').value;
   const totalDonations = parseInt(document.getElementById('editDonorTotalDonations').value, 10) || 0;
   const registeredAt = document.getElementById('editDonorRegisteredAt').value || new Date().toISOString().split('T')[0];
-  const newPassword = document.getElementById('editDonorNewPassword').value.trim();
+  const newPassword = document.getElementById('editDonorNewPassword')?.value?.trim() || '';
 
   const cleanPhone = normalizePhoneSalt(phone);
   if (!/^01[3-9]\d{8}$/.test(cleanPhone)) {

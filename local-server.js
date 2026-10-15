@@ -44,9 +44,10 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`\n======================================================`);
   console.log(` 🩸 ব্লাড সেবা লোকাল সার্ভার সফলভাবে চালু হয়েছে!`);
   console.log(` 🌐 ব্রাউজারে এই লিংকে যান: http://localhost:${PORT}`);
+  console.log(` 🌐 অথবা IPv4 লিংক: http://127.0.0.1:${PORT}`);
   console.log(`======================================================\n`);
 });
