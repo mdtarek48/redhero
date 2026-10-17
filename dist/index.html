@@ -32,8 +32,8 @@
       navigator.serviceWorker.register('/sw.js').catch(console.warn);
     }
   </script>
-  <script type="module" crossorigin src="/assets/index-DyA2dw5q.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-DZbgtqr1.css">
+  <script type="module" crossorigin src="/assets/index-D7HalEp5.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BKdmZkdf.css">
 </head>
 <body>
 
@@ -185,6 +185,7 @@
                 <select id="filterStatus" onchange="applyFilters()">
                   <option value="ALL">সকল ডোনার</option>
                   <option value="AVAILABLE" selected>শুধুমাত্র প্রস্তুত ডোনার (কলযোগ্য)</option>
+                  <option value="RESERVED">৩ দিনের জন্য রিজার্ভড (বুকিং)</option>
                   <option value="COOLDOWN">বিশ্রামে আছেন (৯০ দিনের কাউন্টডাউন)</option>
                 </select>
               </div>
@@ -374,19 +375,24 @@
           <div class="admin-stat-sub">নতুন ব্যবহারকারী যারা একাউন্ট খুলেছেন</div>
         </div>
         <div class="admin-stat-card">
-          <div class="admin-stat-title">অনুমোদিত সক্রিয় ডোনার</div>
+          <div class="admin-stat-title">প্রস্তুত সক্রিয় ডোনার</div>
           <div class="admin-stat-value text-green" id="adminStatApproved">০</div>
-          <div class="admin-stat-sub">সাধারণ সাইটে ক্লাউডে সক্রিয় আছে</div>
+          <div class="admin-stat-sub">সরাসরি কলযোগ্য রক্তদাতা</div>
         </div>
         <div class="admin-stat-card">
-          <div class="admin-stat-title">বিশ্রামে আছেন (৯০ দিনের কাউন্টডাউন)</div>
+          <div class="admin-stat-title">৩ দিনের জন্য রিজার্ভড</div>
+          <div class="admin-stat-value text-amber" id="adminStatReserved">০</div>
+          <div class="admin-stat-sub">রোগীর জন্য সাময়িক বুক করা আছে</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-title">বিশ্রামে আছেন (৯০ দিন)</div>
           <div class="admin-stat-value text-red" id="adminStatCooldown">০</div>
           <div class="admin-stat-sub">বর্তমানে কল লক রয়েছে</div>
         </div>
         <div class="admin-stat-card">
-          <div class="admin-stat-title">সর্বমোট ক্লাউড ডোনার ডাটাবেস</div>
+          <div class="admin-stat-title">সর্বমোট ডোনার ডাটাবেস</div>
           <div class="admin-stat-value text-blue" id="adminStatTotal">০</div>
-          <div class="admin-stat-sub">ম্যানুয়াল + সেলফ-রেজিস্ট্রেশন</div>
+          <div class="admin-stat-sub">অনুমোদিত ও পেন্ডিং মোট ডোনার</div>
         </div>
       </div>
 
@@ -1081,6 +1087,54 @@
         <div class="modal-footer">
           <button type="button" class="btn-secondary" onclick="closeModal('masterChangePassModal')">বাতিল</button>
           <button type="submit" class="btn-primary">মাস্টার পাসওয়ার্ড পরিবর্তন করুন</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- RESERVE DONOR MODAL (3 Days Reservation) -->
+  <div id="reserveDonorModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card modal-card-sm">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title" id="reserveModalTitle">📅 ৩ দিনের জন্য রক্তদাতা রিজার্ভ করুন</h3>
+          <p class="modal-subtitle" id="reserveModalSubtitle">রোগীর চিকিৎসার জন্য রক্তদাতা বুকিং</p>
+        </div>
+        <button class="modal-close" onclick="closeModal('reserveDonorModal')">&times;</button>
+      </div>
+
+      <div class="alert-box warning-alert" style="margin-bottom: 1.25rem; font-size: 0.88rem; line-height: 1.5; padding: 0.85rem 1rem;">
+        <span class="alert-icon">📌</span>
+        <div>
+          <strong>রিজার্ভেশন নিয়ম:</strong> এই রক্তদাতাকে আগামী <strong>৩ দিনের</strong> জন্য আপনার রোগীর জন্য সংরক্ষিত রাখা হবে। এই সময়ে অন্য কেউ কল বা বুক করতে পারবে না।
+          <br><br>
+          ৩ দিন পর যদি রক্তদান সম্পন্ন না হয় (ডোনার কুলডাউনে না যান), তবে উনি স্বয়ংক্রিয়ভাবে পুনরায় কলযোগ্য হয়ে যাবেন এবং অন্য কেউ রিজার্ভ করতে পারবেন।
+        </div>
+      </div>
+
+      <form id="reserveDonorForm" onsubmit="handleConfirmReservation(event)">
+        <input type="hidden" id="reserveDonorId">
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="reservePatientName">রোগীর নাম অথবা আপনার নাম *</label>
+          <input type="text" id="reservePatientName" required placeholder="উদাঃ মোঃ রফিকুল ইসলাম">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="reserveContactPhone">আপনার যোগাযোগের মোবাইল নম্বর *</label>
+          <input type="tel" id="reserveContactPhone" required placeholder="01XXXXXXXXX" pattern="01[3-9][0-9]{8}">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label for="reserveHospitalNote">হাসপাতাল / এলাকা / রক্তের প্রয়োজন (ঐচ্ছিক)</label>
+          <input type="text" id="reserveHospitalNote" placeholder="উদাঃ ঢাকা মেডিকেল, ২ ব্যাগ রক্ত">
+        </div>
+
+        <div class="modal-footer" style="padding-top: 1rem;">
+          <button type="button" class="btn-secondary" onclick="closeModal('reserveDonorModal')">বাতিল</button>
+          <button type="submit" class="btn-primary" id="btnSubmitReservation" style="background:#15803d;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"></path></svg>
+            <span>৩ দিনের জন্য রিজার্ভ নিশ্চিত করুন</span>
+          </button>
         </div>
       </form>
     </div>

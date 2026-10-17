@@ -42,6 +42,9 @@ import {
 // 90 Days in Milliseconds: 90 days * 24 hrs * 60 mins * 60 secs * 1000 ms
 const COOLDOWN_DURATION_MS = 90 * 24 * 60 * 60 * 1000;
 
+// 3 Days in Milliseconds: 3 days * 24 hrs * 60 mins * 60 secs * 1000 ms
+const RESERVATION_DURATION_MS = 3 * 24 * 60 * 60 * 1000;
+
 // Local Session Keys (Only for maintaining who is logged into this browser)
 const STORAGE_DONOR_AUTH_KEY = 'blood_seva_auth_donor_v1';
 const STORAGE_ADMIN_AUTH_KEY = 'blood_seva_auth_admin_v1';
@@ -485,6 +488,35 @@ function formatCooldownDisplayBn(cooldownUntil) {
 }
 
 // ==========================================================================
+// 3-Day Reservation Calculation Helpers
+// ==========================================================================
+function isDonorReserved(donor) {
+  if (!donor || !donor.reservedUntil) return false;
+  if (isDonorInCooldown(donor)) return false; // Cooldown takes precedence
+  return Number(donor.reservedUntil) > Date.now();
+}
+
+function getRemainingReservationTime(reservedUntil) {
+  const diffMs = Math.max(0, Number(reservedUntil) - Date.now());
+  const totalSeconds = Math.floor(diffMs / 1000);
+
+  const days = Math.floor(totalSeconds / (3600 * 24));
+  const hours = Math.floor((totalSeconds % (3600 * 24)) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = Math.floor(totalSeconds % 60);
+
+  return { diffMs, totalSeconds, days, hours, minutes, seconds };
+}
+
+function formatReservationDisplayBn(reservedUntil) {
+  const { days, hours, minutes, seconds } = getRemainingReservationTime(reservedUntil);
+  if (days > 0) {
+    return `${toBnNum(days)} দিন ${toBnNum(hours)} ঘণ্টা ${toBnNum(minutes)} মিনিট`;
+  }
+  return `${toBnNum(hours)} ঘণ্টা ${toBnNum(minutes)} মিনিট ${toBnNum(seconds)} সেকেন্ড`;
+}
+
+// ==========================================================================
 // ==========================================================================
 // Public View: Donor Directory & Filtering
 // ==========================================================================
@@ -545,27 +577,35 @@ function renderPublicDonors() {
   }
 
   if (state.filters.status === 'AVAILABLE') {
-    list = list.filter(d => !isDonorInCooldown(d));
+    list = list.filter(d => !isDonorInCooldown(d) && !isDonorReserved(d));
+  } else if (state.filters.status === 'RESERVED') {
+    list = list.filter(d => isDonorReserved(d));
   } else if (state.filters.status === 'COOLDOWN') {
     list = list.filter(d => isDonorInCooldown(d));
   }
 
-  // Sort: যারা এখন ব্লাড দিতে পারবেন তারা আগে থাকবে, যারা দিতে পারবেন না (বিশ্রামে আছেন) তারা পরে থাকবে
+  // Sort: যারা এখন প্রস্তুত তারা আগে, তারপর রিজার্ভড, তারপর বিশ্রামে (৯০ দিন)
   list.sort((a, b) => {
-    const aCooldown = isDonorInCooldown(a);
-    const bCooldown = isDonorInCooldown(b);
-
-    if (aCooldown !== bCooldown) {
-      // aCooldown false (ready) comes before bCooldown true (not ready)
-      return aCooldown ? 1 : -1;
+    const aCool = isDonorInCooldown(a);
+    const bCool = isDonorInCooldown(b);
+    if (aCool !== bCool) {
+      return aCool ? 1 : -1;
     }
 
-    // If both in cooldown, the donor whose cooldown finishes sooner appears first
-    if (aCooldown && bCooldown) {
+    const aRes = isDonorReserved(a);
+    const bRes = isDonorReserved(b);
+    if (aRes !== bRes) {
+      return aRes ? 1 : -1;
+    }
+
+    if (aCool && bCool) {
       return (Number(a.cooldownUntil) || 0) - (Number(b.cooldownUntil) || 0);
     }
 
-    // If both are ready, sort by total donations descending
+    if (aRes && bRes) {
+      return (Number(a.reservedUntil) || 0) - (Number(b.reservedUntil) || 0);
+    }
+
     return (b.totalDonations || 0) - (a.totalDonations || 0);
   });
 
@@ -581,9 +621,13 @@ function renderPublicDonors() {
 
   grid.innerHTML = list.map(donor => {
     const inCooldown = isDonorInCooldown(donor);
+    const inReserve = !inCooldown && isDonorReserved(donor);
     const lastDonationStr = donor.lastDonationDate 
       ? new Date(donor.lastDonationDate).toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric' })
       : 'রেকর্ড নেই';
+
+    const safeReserverName = (donor.reservedBy?.name || 'রোগীর স্বজন').replace(/'/g, "\\'");
+    const safeDonorName = (donor.name || 'ডোনার').replace(/'/g, "\\'");
 
     return `
       <div class="donor-card" id="card-${donor.id}">
@@ -612,6 +656,22 @@ function renderPublicDonors() {
                 ${formatCooldownDisplayBn(donor.cooldownUntil)}
               </div>
             </div>
+          ` : inReserve ? `
+            <div class="status-pill reserved">
+              <span class="pill-dot"></span>
+              <span>🔒 ৩ দিনের জন্য রিজার্ভড (বুকিং)</span>
+            </div>
+            <div class="reserved-card-notice">
+              <div class="reserved-notice-header">
+                <span>⏳ রিজার্ভ শেষ হতে বাকি:</span>
+              </div>
+              <div class="reserved-timer-text" data-reserve-timer-id="${donor.id}" data-reserved="${donor.reservedUntil}">
+                ${formatReservationDisplayBn(donor.reservedUntil)}
+              </div>
+              <div class="reserved-note-text">
+                ${donor.reservedBy?.name ? `রোগী/বুকিং: <strong>${donor.reservedBy.name}</strong>` : 'রোগীর জন্য ৩ দিনের সাময়িক বুকিং'}
+              </div>
+            </div>
           ` : `
             <div class="status-pill available">
               <span class="pill-dot"></span>
@@ -627,15 +687,31 @@ function renderPublicDonors() {
 
         <div class="donor-card-action">
           ${inCooldown ? `
-            <button class="btn-call-locked" onclick="alertLockedDonor('${donor.name}', ${donor.cooldownUntil})">
+            <button class="btn-call-locked" onclick="alertLockedDonor('${safeDonorName}', ${donor.cooldownUntil})">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
               <span>কল লক রয়েছে (বিশ্রামে আছেন)</span>
             </button>
+          ` : inReserve ? `
+            <div class="donor-action-buttons">
+              <button class="btn-call-reserved" onclick="alertReservedDonor('${safeDonorName}', ${donor.reservedUntil}, '${safeReserverName}')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <span>🔒 রিজার্ভড (কল লক রয়েছে)</span>
+              </button>
+              <button class="btn-cancel-reserve-small" onclick="cancelDonorReservation('${donor.id}', '${safeDonorName}')" title="প্রয়োজন না থাকলে রিজার্ভ উন্মুক্ত করুন">
+                <span>🔓 প্রয়োজন না থাকলে রিজার্ভ বাতিল করুন</span>
+              </button>
+            </div>
           ` : `
-            <a href="tel:${donor.phone}" class="btn-call-active" onclick="recordCallAttempt('${donor.name}', '${donor.phone}')">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-              <span>সরাসরি কল করুন (${donor.phone})</span>
-            </a>
+            <div class="donor-action-buttons">
+              <a href="tel:${donor.phone}" class="btn-call-active" onclick="recordCallAttempt('${safeDonorName}', '${donor.phone}')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                <span>সরাসরি কল করুন (${donor.phone})</span>
+              </a>
+              <button class="btn-reserve-action" onclick="openReserveDonorModal('${donor.id}', '${safeDonorName}', '${donor.bloodGroup}', '${donor.district}')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                <span>📅 ৩ দিনের জন্য রিজার্ভ করুন</span>
+              </button>
+            </div>
           `}
         </div>
 
@@ -657,20 +733,195 @@ function alertLockedDonor(name, cooldownUntil) {
   alert(`🛡️ এই ডোনার (${name}) সম্প্রতি রক্ত দিয়েছেন এবং তার স্বাস্থ্য সুরক্ষার জন্য বিশ্রামে আছেন।\n\nআগামী ${remainingStr} পর্যন্ত তার কল বন্ধ রাখা হয়েছে। অনুগ্রহ করে তালিকার অন্য একজন প্রস্তুত ডোনারকে কল করুন।`);
 }
 
+function alertReservedDonor(name, reservedUntil, reservedByName) {
+  const remainingStr = formatReservationDisplayBn(reservedUntil);
+  const reserverInfo = reservedByName ? ` (${reservedByName})` : '';
+  alert(`📌 এই রক্তদাতা (${name}) বর্তমানে একজন রোগীর জন্য আগামী ৩ দিনের জন্য রিজার্ভ করা আছেন${reserverInfo}।\n\n🛡️ নিয়মাবলী:\n১. যদি উনি রক্তদান করেন, তবে উনি ৯০ দিনের স্বাস্থ্য সুরক্ষা বিশ্রামে (কুলডাউন) চলে যাবেন।\n২. আর ৩ দিন পর যদি ডোনার কুলডাউন না দেন (রক্তদান না হয়), তাহলে ৩ দিন শেষ হওয়া মাত্রই উনি স্বয়ংক্রিয়ভাবে পুনরায় কলযোগ্য হয়ে যাবেন এবং অন্য যেকোনো ব্যক্তি রিজার্ভ করতে পারবেন।\n\n⏳ রিজার্ভেশন শেষ হতে বাকি: ${remainingStr}`);
+}
+
+// ==========================================================================
+// 3-Day Donor Reservation System (Public & Admin)
+// ==========================================================================
+function openReserveDonorModal(donorId, donorName, bloodGroup, district) {
+  const donor = state.donors.find(d => d.id === donorId);
+  if (!donor) return;
+
+  if (isDonorInCooldown(donor)) {
+    alertLockedDonor(donor.name, donor.cooldownUntil);
+    return;
+  }
+
+  if (isDonorReserved(donor)) {
+    alertReservedDonor(donor.name, donor.reservedUntil, donor.reservedBy?.name);
+    return;
+  }
+
+  const form = document.getElementById('reserveDonorForm');
+  if (form) form.reset();
+
+  const idInput = document.getElementById('reserveDonorId');
+  if (idInput) idInput.value = donor.id;
+  
+  const titleEl = document.getElementById('reserveModalTitle');
+  if (titleEl) titleEl.textContent = `📅 ৩ দিনের জন্য ${donor.name}-কে রিজার্ভ করুন`;
+
+  const subEl = document.getElementById('reserveModalSubtitle');
+  if (subEl) subEl.textContent = `রক্তের গ্রুপ: ${donor.bloodGroup} • জেলা: ${donor.district}, ${donor.area}`;
+
+  openModal('reserveDonorModal');
+
+  setTimeout(() => {
+    const patientInput = document.getElementById('reservePatientName');
+    if (patientInput) patientInput.focus();
+  }, 100);
+}
+
+async function handleConfirmReservation(e) {
+  e.preventDefault();
+
+  const donorId = document.getElementById('reserveDonorId').value;
+  const patientName = document.getElementById('reservePatientName').value.trim();
+  const contactPhone = document.getElementById('reserveContactPhone').value.trim();
+  const hospitalNote = document.getElementById('reserveHospitalNote').value.trim();
+
+  if (!patientName) {
+    alert('অনুগ্রহ করে রোগীর নাম অথবা যোগাযোগের নাম প্রদান করুন।');
+    return;
+  }
+
+  const cleanPhone = normalizePhoneSalt(contactPhone);
+  if (!/^01[3-9]\d{8}$/.test(cleanPhone)) {
+    alert('অনুগ্রহ করে সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন (উদাঃ 01XXXXXXXXX)');
+    return;
+  }
+
+  const donor = state.donors.find(d => d.id === donorId);
+  if (!donor) {
+    alert('রক্তদাতার তথ্য পাওয়া যায়নি।');
+    return;
+  }
+
+  if (isDonorInCooldown(donor)) {
+    alert('এই রক্তদাতা বর্তমানে বিশ্রামে আছেন, রিজার্ভ করা সম্ভব নয়।');
+    closeModal('reserveDonorModal');
+    return;
+  }
+
+  if (isDonorReserved(donor)) {
+    alert('এই রক্তদাতা ইতিমধ্যে অন্য একজন রোগীর জন্য রিজার্ভ করা রয়েছেন।');
+    closeModal('reserveDonorModal');
+    return;
+  }
+
+  const submitBtn = document.getElementById('btnSubmitReservation');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<span>রিজার্ভ সম্পন্ন হচ্ছে...</span>`;
+  }
+
+  const now = Date.now();
+  const reservedUntil = now + RESERVATION_DURATION_MS;
+  const reservedBy = {
+    name: patientName,
+    phone: cleanPhone,
+    note: hospitalNote || ''
+  };
+
+  const updates = {
+    reservedUntil,
+    reservedAt: new Date(now).toISOString(),
+    reservedBy
+  };
+
+  try {
+    if (state.usingFirebase) {
+      try {
+        await updateDonorInCloud(donorId, updates);
+      } catch (cloudErr) {
+        console.warn('Reservation cloud update fallback:', cloudErr);
+      }
+    }
+
+    Object.assign(donor, updates);
+    localStorage.setItem(STORAGE_DONORS_BACKUP_KEY, JSON.stringify(sanitizeDonorsList(state.donors)));
+    onDonorsUpdated();
+
+    closeModal('reserveDonorModal');
+    showToast(`✅ রক্তদাতা ${donor.name}-কে ৩ দিনের জন্য রিজার্ভ করা হয়েছে!`, 'success');
+
+    alert(`🎉 রক্তদাতা ${donor.name} (${donor.bloodGroup})-কে আগামী ৩ দিনের জন্য সফলভাবে আপনার রোগীর জন্য রিজার্ভ করা হয়েছে!\n\n📌 ৩ দিনের মধ্যে রক্তদান সম্পন্ন হলে ডোনার নিজে তার ড্যাশবোর্ড থেকে অথবা এডমিন ৯০ দিনের কুলডাউন প্রদান করবেন।\n\n💡 আর যদি ৩ দিন পার হয়ে যায় এবং রক্তদান না হয়, তবে তিনি স্বয়ংক্রিয়ভাবে পুনরায় সবার জন্য কলযোগ্য হয়ে যাবেন এবং অন্য কেউ রিজার্ভ করতে পারবেন।`);
+  } catch (err) {
+    console.error('Reservation error:', err);
+    alert('রিজার্ভেশন সম্পন্ন করা যায়নি: ' + err.message);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"></path></svg>
+        <span>৩ দিনের জন্য রিজার্ভ নিশ্চিত করুন</span>
+      `;
+    }
+  }
+}
+
+async function cancelDonorReservation(donorId, donorName) {
+  const donor = state.donors.find(d => d.id === donorId);
+  const displayName = donor ? donor.name : (donorName || 'এই রক্তদাতা');
+
+  if (!confirm(`আপনি কি নিশ্চিত যে "${displayName}"-এর ৩ দিনের রিজার্ভেশন বাতিল করে সবার জন্য কলযোগ্য করতে চান?`)) {
+    return;
+  }
+
+  const updates = {
+    reservedUntil: 0,
+    reservedAt: null,
+    reservedBy: null
+  };
+
+  try {
+    if (state.usingFirebase) {
+      try {
+        await updateDonorInCloud(donorId, updates);
+      } catch (cloudErr) {
+        console.warn('Cancel reserve cloud error:', cloudErr);
+      }
+    }
+
+    if (donor) {
+      Object.assign(donor, updates);
+    }
+    localStorage.setItem(STORAGE_DONORS_BACKUP_KEY, JSON.stringify(sanitizeDonorsList(state.donors)));
+    onDonorsUpdated();
+
+    if (state.currentDonor && state.currentDonor.id === donorId) {
+      Object.assign(state.currentDonor, updates);
+      renderDonorDashboard();
+    }
+
+    showToast(`🔓 ${displayName}-এর রিজার্ভেশন বাতিল করা হয়েছে। উনি এখন সবার জন্য কলযোগ্য!`, 'info');
+  } catch (err) {
+    console.error('Cancel reservation error:', err);
+    alert('রিজার্ভেশন বাতিল করা যায়নি: ' + err.message);
+  }
+}
+
 function recordCallAttempt(name, phone) {
   showToast(`${name}-এর নম্বরে (${phone}) কল ডায়াল করা হচ্ছে...`, 'info');
 }
 
 function updateTopStats() {
   const approved = state.donors.filter(d => d.approvalStatus === 'APPROVED');
-  const ready = approved.filter(d => !isDonorInCooldown(d)).length;
   const cooldown = approved.filter(d => isDonorInCooldown(d)).length;
+  const reserved = approved.filter(d => !isDonorInCooldown(d) && isDonorReserved(d)).length;
+  const ready = approved.filter(d => !isDonorInCooldown(d) && !isDonorReserved(d)).length;
 
   const elReady = document.getElementById('statReadyCount');
+  const elReserved = document.getElementById('statReservedCount');
   const elCooldown = document.getElementById('statCooldownCount');
   const elTotal = document.getElementById('statTotalApproved');
 
   if (elReady) elReady.textContent = toBnNum(ready);
+  if (elReserved) elReserved.textContent = toBnNum(reserved);
   if (elCooldown) elCooldown.textContent = toBnNum(cooldown);
   if (elTotal) elTotal.textContent = toBnNum(approved.length);
 }
@@ -697,6 +948,7 @@ function updatePendingBadge() {
 
 // Realtime countdown ticker every 1 second
 function tickTimers() {
+  // 1. Cooldown Timers
   const timerElements = document.querySelectorAll('[data-timer-id]');
   timerElements.forEach(el => {
     const cooldownUntil = Number(el.getAttribute('data-cooldown'));
@@ -708,16 +960,41 @@ function tickTimers() {
     }
   });
 
-  if (state.currentDonor && isDonorInCooldown(state.currentDonor)) {
-    const { totalSeconds, days, hours, minutes, seconds } = getRemainingCooldownTime(state.currentDonor.cooldownUntil);
-    if (totalSeconds > 0) {
-      document.getElementById('timerDays').textContent = String(days).padStart(2, '0');
-      document.getElementById('timerHours').textContent = String(hours).padStart(2, '0');
-      document.getElementById('timerMinutes').textContent = String(minutes).padStart(2, '0');
-      document.getElementById('timerSeconds').textContent = String(seconds).padStart(2, '0');
+  // 2. 3-Day Reservation Timers
+  const reserveTimerElements = document.querySelectorAll('[data-reserve-timer-id]');
+  reserveTimerElements.forEach(el => {
+    const reservedUntil = Number(el.getAttribute('data-reserved'));
+    if (reservedUntil > Date.now()) {
+      el.textContent = formatReservationDisplayBn(reservedUntil);
     } else {
-      renderDonorDashboard();
+      // 3 days elapsed without cooldown -> automatically callable and ready for next reserve!
+      renderPublicDonors();
       updateTopStats();
+    }
+  });
+
+  // 3. Donor Dashboard Live Timer
+  if (state.currentDonor) {
+    if (isDonorInCooldown(state.currentDonor)) {
+      const { totalSeconds, days, hours, minutes, seconds } = getRemainingCooldownTime(state.currentDonor.cooldownUntil);
+      if (totalSeconds > 0) {
+        const dEl = document.getElementById('timerDays');
+        const hEl = document.getElementById('timerHours');
+        const mEl = document.getElementById('timerMinutes');
+        const sEl = document.getElementById('timerSeconds');
+        if (dEl) dEl.textContent = String(days).padStart(2, '0');
+        if (hEl) hEl.textContent = String(hours).padStart(2, '0');
+        if (mEl) mEl.textContent = String(minutes).padStart(2, '0');
+        if (sEl) sEl.textContent = String(seconds).padStart(2, '0');
+      } else {
+        renderDonorDashboard();
+        updateTopStats();
+      }
+    } else if (isDonorReserved(state.currentDonor)) {
+      const resLiveTimer = document.getElementById('dashReserveLiveTimer');
+      if (resLiveTimer) {
+        resLiveTimer.textContent = formatReservationDisplayBn(state.currentDonor.reservedUntil);
+      }
     }
   }
 }
@@ -1076,6 +1353,7 @@ function renderDonorDashboard() {
   }
 
   const inCooldown = isDonorInCooldown(donor);
+  const inReserve = !inCooldown && isDonorReserved(donor);
   const banner = document.getElementById('dashCooldownBanner');
   const timerBox = document.getElementById('dashLiveTimerBox');
   const btnMarkDonated = document.getElementById('btnMarkDonated');
@@ -1089,6 +1367,33 @@ function renderDonorDashboard() {
     `;
     timerBox.style.display = 'block';
     btnMarkDonated.innerHTML = `<span>রক্তদানের তারিখ আপডেট করুন</span>`;
+  } else if (inReserve) {
+    banner.innerHTML = `
+      <div style="background:#fffbeb; border:1.5px solid #fde68a; border-radius:12px; padding:1.15rem; width:100%;">
+        <div style="color:#b45309; font-weight:700; font-size:1.05rem; margin-bottom:0.35rem;">
+          📅 আপনার প্রোফাইলটি আগামী ৩ দিনের জন্য একজন রোগীর জন্য রিজার্ভ করা রয়েছে
+        </div>
+        <div style="color:#92400e; font-size:0.9rem; margin-bottom:0.5rem;">
+          বুকিং তথ্য: <strong>${donor.reservedBy?.name || 'রোগীর স্বজন'}</strong> (${donor.reservedBy?.phone || 'নম্বর নেই'}) ${donor.reservedBy?.note ? `• ${donor.reservedBy.note}` : ''}
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+          <div style="color:#b45309; font-size:0.88rem; font-weight:600;">
+            ⏳ রিজার্ভ শেষ হতে বাকি: <span id="dashReserveLiveTimer" style="font-family:var(--font-mono); font-weight:700;">${formatReservationDisplayBn(donor.reservedUntil)}</span>
+          </div>
+          <button class="btn-secondary" onclick="cancelDonorReservation('${donor.id}', '${donor.name}')" style="font-size:0.85rem; padding:0.4rem 0.85rem;">
+            🔓 রিজার্ভ বাতিল / উন্মুক্ত করুন
+          </button>
+        </div>
+        <div style="margin-top:0.5rem; font-size:0.8rem; color:#78350f;">
+          💡 আপনি রক্ত দিলে নিচের "আমি রক্ত দিয়েছি" বাটনে ক্লিক করে ৯০ দিনের কুলডাউনে যেতে পারবেন। আর রক্ত না দিলে ৩ দিন শেষ হলে প্রোফাইল স্বয়ংক্রিয়ভাবে আবার সবার জন্য কলযোগ্য হয়ে যাবে।
+        </div>
+      </div>
+    `;
+    timerBox.style.display = 'none';
+    btnMarkDonated.innerHTML = `
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
+      <span>রক্তদান সম্পন্ন করেছি (কুলডাউন দিন)</span>
+    `;
   } else {
     banner.innerHTML = `
       <div style="color: #065f46; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
@@ -1124,7 +1429,9 @@ async function executeMarkDonated() {
   const updates = {
     lastDonationDate: new Date().toISOString(),
     cooldownUntil: now + COOLDOWN_DURATION_MS,
-    totalDonations: (state.currentDonor.totalDonations || 0) + 1
+    totalDonations: (state.currentDonor.totalDonations || 0) + 1,
+    reservedUntil: 0,
+    reservedBy: null
   };
 
   try {
@@ -1154,11 +1461,19 @@ function renderAdminPanel() {
   const pending = state.donors.filter(d => d.approvalStatus === 'PENDING');
   const approved = state.donors.filter(d => d.approvalStatus === 'APPROVED');
   const cooldown = approved.filter(d => isDonorInCooldown(d));
+  const reserved = approved.filter(d => !isDonorInCooldown(d) && isDonorReserved(d));
 
-  document.getElementById('adminStatPending').textContent = toBnNum(pending.length);
-  document.getElementById('adminStatApproved').textContent = toBnNum(approved.length);
-  document.getElementById('adminStatCooldown').textContent = toBnNum(cooldown.length);
-  document.getElementById('adminStatTotal').textContent = toBnNum(state.donors.length);
+  const elPending = document.getElementById('adminStatPending');
+  const elApproved = document.getElementById('adminStatApproved');
+  const elReserved = document.getElementById('adminStatReserved');
+  const elCooldown = document.getElementById('adminStatCooldown');
+  const elTotal = document.getElementById('adminStatTotal');
+
+  if (elPending) elPending.textContent = toBnNum(pending.length);
+  if (elApproved) elApproved.textContent = toBnNum(approved.length);
+  if (elReserved) elReserved.textContent = toBnNum(reserved.length);
+  if (elCooldown) elCooldown.textContent = toBnNum(cooldown.length);
+  if (elTotal) elTotal.textContent = toBnNum(state.donors.length);
   document.getElementById('tablePendingCount').textContent = `${toBnNum(pending.length)} জন পেন্ডিং`;
 
   const pendingBody = document.getElementById('pendingDonorsTableBody');
@@ -1237,9 +1552,11 @@ function renderApprovedDonorsTable(list) {
 
   body.innerHTML = list.map(donor => {
     const inCooldown = isDonorInCooldown(donor);
+    const inReserve = !inCooldown && isDonorReserved(donor);
     const lastStr = donor.lastDonationDate 
       ? new Date(donor.lastDonationDate).toLocaleDateString('bn-BD', { year: 'numeric', month: 'short', day: 'numeric' })
       : 'রেকর্ড নেই';
+    const safeDonorName = (donor.name || 'ডোনার').replace(/'/g, "\\'");
 
     return `
       <tr>
@@ -1253,6 +1570,10 @@ function renderApprovedDonorsTable(list) {
             <span class="status-pill cooldown">
               বিশ্রামে (${toBnNum(getRemainingCooldownTime(donor.cooldownUntil).days)} দিন বাকি)
             </span>
+          ` : inReserve ? `
+            <span class="status-pill reserved" title="রিজার্ভকারী: ${donor.reservedBy?.name || 'রোগীর স্বজন'} (${donor.reservedBy?.phone || ''})">
+              🔒 রিজার্ভড (${toBnNum(getRemainingReservationTime(donor.reservedUntil).days)} দিন বাকি)
+            </span>
           ` : `
             <span class="status-pill available">প্রস্তুত (কল খোলা)</span>
           `}
@@ -1262,6 +1583,11 @@ function renderApprovedDonorsTable(list) {
             <button class="btn-table-action edit" onclick="adminOpenEditDonorModal('${donor.id}')" title="সকল তথ্য এডিট করুন">
               ✏️ এডিট
             </button>
+            ${inReserve ? `
+              <button class="btn-table-action reserve-cancel" onclick="cancelDonorReservation('${donor.id}', '${safeDonorName}')" title="রিজার্ভ বাতিল করে প্রস্তুত করুন">
+                🔓 রিজার্ভ বাতিল
+              </button>
+            ` : ''}
             <button class="btn-table-action cooldown-toggle" onclick="adminToggleCooldown('${donor.id}')" title="৯০ দিনের অবস্থা পরিবর্তন">
               ${inCooldown ? '🔓 কল আনলক করুন' : '⏳ ৯০ দিন বিশ্রাম দিন'}
             </button>
@@ -1335,7 +1661,12 @@ async function adminToggleCooldown(donorId) {
   const inCooldown = isDonorInCooldown(donor);
   const updates = inCooldown 
     ? { cooldownUntil: 0 }
-    : { lastDonationDate: new Date().toISOString(), cooldownUntil: Date.now() + COOLDOWN_DURATION_MS };
+    : { 
+        lastDonationDate: new Date().toISOString(), 
+        cooldownUntil: Date.now() + COOLDOWN_DURATION_MS,
+        reservedUntil: 0,
+        reservedBy: null
+      };
 
   try {
     if (state.usingFirebase) {
@@ -1650,6 +1981,11 @@ async function handleAdminEditDonor(e) {
     totalDonations,
     registeredAt
   };
+
+  if (cooldownChoice === 'COOLDOWN') {
+    updates.reservedUntil = 0;
+    updates.reservedBy = null;
+  }
 
   if (newPassword) {
     const strength = validatePasswordStrength(newPassword);
@@ -2045,6 +2381,10 @@ window.handleClearFirebaseConfig = handleClearFirebaseConfig;
 window.openModal = openModal;
 window.closeModal = closeModal;
 window.alertLockedDonor = alertLockedDonor;
+window.alertReservedDonor = alertReservedDonor;
+window.openReserveDonorModal = openReserveDonorModal;
+window.handleConfirmReservation = handleConfirmReservation;
+window.cancelDonorReservation = cancelDonorReservation;
 window.recordCallAttempt = recordCallAttempt;
 window.filterAdminTable = filterAdminTable;
 window.handleInstallApp = handleInstallApp;

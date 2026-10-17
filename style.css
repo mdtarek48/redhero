@@ -2505,3 +2505,138 @@ button, input, select, textarea {
     font-size: 0.65rem;
   }
 }
+
+/* ==========================================================================
+   3-Day Donor Reservation System Styles
+   ========================================================================== */
+.status-pill.reserved {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #b45309;
+}
+
+.status-pill.reserved .pill-dot {
+  background: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+}
+
+.reserved-card-notice {
+  background: #fffbeb;
+  border: 1.5px dashed #f59e0b;
+  border-radius: var(--radius-md);
+  padding: 0.8rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.reserved-notice-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #b45309;
+  font-weight: 700;
+  font-size: 0.86rem;
+  margin-bottom: 0.25rem;
+}
+
+.reserved-timer-text {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #92400e;
+}
+
+.reserved-note-text {
+  font-size: 0.82rem;
+  color: #78350f;
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px dashed #fde68a;
+}
+
+.donor-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.btn-reserve-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1.5px solid #86efac;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-reserve-action:hover {
+  background: #dcfce7;
+  border-color: #22c55e;
+  color: #166534;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(34, 197, 94, 0.2);
+}
+
+.btn-call-reserved {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.85rem;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1.5px dashed #f59e0b;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-call-reserved:hover {
+  background: #fde68a;
+  border-color: #d97706;
+}
+
+.btn-cancel-reserve-small {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 0.45rem;
+  padding: 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #991b1b;
+  background: #fef2f2;
+  border: 1px dashed #fca5a5;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-cancel-reserve-small:hover {
+  background: #fee2e2;
+  border-color: #dc2626;
+  color: #7f1d1d;
+}
+
+.btn-table-action.reserve-cancel {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.btn-table-action.reserve-cancel:hover {
+  background: #f59e0b;
+  color: #fff;
+}
+
