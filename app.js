@@ -179,8 +179,8 @@ const state = {
 // Initialization & Cloud Sync
 // ==========================================================================
 document.addEventListener('DOMContentLoaded', () => {
-  setupFirebaseConnection();
   restoreAuthSessions();
+  setupFirebaseConnection();
   renderPublicDonors();
   updateTopStats();
   updatePendingBadge();
@@ -229,19 +229,45 @@ function setupFirebaseConnection() {
 
 let adminUnsubscribe = null;
 function syncAdminSubscription() {
-  if (!state.usingFirebase) return;
   if (state.isAdmin) {
-    if (!adminUnsubscribe) {
-      adminUnsubscribe = subscribeToAdmins((cloudAdmins) => {
-        console.log('🔥 Received Real-time Admins from Firebase:', cloudAdmins.length);
-        state.admins = cloudAdmins;
-        localStorage.setItem(STORAGE_ADMINS_BACKUP_KEY, JSON.stringify(cloudAdmins));
-        if (state.currentView === 'admin' && state.isMasterAdmin) {
-          renderAdminTeam();
+    // 1. Instantly load local backup so there is zero empty-state delay
+    if (!state.admins || state.admins.length === 0) {
+      fallbackAdminsBackup();
+    }
+    if (state.currentView === 'admin' && state.isMasterAdmin) {
+      renderAdminTeam();
+    }
+
+    // 2. If Firebase is active, connect real-time listener + direct fetch
+    if (state.usingFirebase) {
+      if (!adminUnsubscribe) {
+        adminUnsubscribe = subscribeToAdmins((cloudAdmins) => {
+          console.log('🔥 Received Real-time Admins from Firebase:', cloudAdmins.length);
+          state.admins = cloudAdmins;
+          localStorage.setItem(STORAGE_ADMINS_BACKUP_KEY, JSON.stringify(cloudAdmins));
+          if (state.currentView === 'admin' && state.isMasterAdmin) {
+            renderAdminTeam();
+          }
+        }, (err) => {
+          console.error('Firebase admins sync error:', err);
+          fallbackAdminsBackup();
+          if (state.currentView === 'admin' && state.isMasterAdmin) {
+            renderAdminTeam();
+          }
+        });
+      }
+
+      // Also trigger a one-shot direct fetch to guarantee the list arrives immediately
+      fetchAdminsFromCloud().then((cloudAdmins) => {
+        if (cloudAdmins && Array.isArray(cloudAdmins) && cloudAdmins.length > 0) {
+          state.admins = cloudAdmins;
+          localStorage.setItem(STORAGE_ADMINS_BACKUP_KEY, JSON.stringify(cloudAdmins));
+          if (state.currentView === 'admin' && state.isMasterAdmin) {
+            renderAdminTeam();
+          }
         }
-      }, (err) => {
-        console.error('Firebase admins sync error:', err);
-        fallbackAdminsBackup();
+      }).catch(err => {
+        console.warn('Initial admin cloud fetch warning:', err);
       });
     }
   } else {
@@ -250,7 +276,6 @@ function syncAdminSubscription() {
     }
     adminUnsubscribe = null;
     state.admins = [];
-    localStorage.removeItem(STORAGE_ADMINS_BACKUP_KEY);
   }
 }
 
@@ -258,11 +283,16 @@ function fallbackAdminsBackup() {
   const backup = localStorage.getItem(STORAGE_ADMINS_BACKUP_KEY);
   if (backup) {
     try {
-      state.admins = JSON.parse(backup);
+      const parsed = JSON.parse(backup);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        state.admins = parsed;
+        return;
+      }
     } catch (e) {
-      state.admins = [];
+      console.warn('Admin backup parse error:', e);
     }
-  } else {
+  }
+  if (!state.admins || !Array.isArray(state.admins)) {
     state.admins = [];
   }
 }
@@ -409,6 +439,8 @@ function restoreAuthSessions() {
         state.isMasterAdmin = !!session.isMaster;
         state.currentAdmin = session;
         state.currentDonor = null;
+        fallbackAdminsBackup();
+        syncAdminSubscription();
       } else if (session.role === 'DONOR' && session.id) {
         const found = state.donors.find(d => d.id === session.id);
         if (found) {
@@ -1171,7 +1203,19 @@ function renderAdminPanel() {
   if (masterSection) {
     if (state.isMasterAdmin) {
       masterSection.style.display = 'block';
+      syncAdminSubscription();
       renderAdminTeam();
+
+      // If admins list is empty and Firebase is active, trigger an immediate cloud fetch
+      if ((!state.admins || state.admins.length === 0) && state.usingFirebase) {
+        fetchAdminsFromCloud().then(cloudAdmins => {
+          if (cloudAdmins && Array.isArray(cloudAdmins) && cloudAdmins.length > 0) {
+            state.admins = cloudAdmins;
+            localStorage.setItem(STORAGE_ADMINS_BACKUP_KEY, JSON.stringify(cloudAdmins));
+            renderAdminTeam();
+          }
+        }).catch(e => console.warn('Fetch admins in panel error:', e));
+      }
     } else {
       masterSection.style.display = 'none';
     }
@@ -1668,15 +1712,18 @@ function renderAdminTeam() {
 
   let html = `
     <tr>
-      <td><strong>মাস্টার এডমিন (প্রধান)</strong></td>
+      <td><strong>👑 মাস্টার এডমিন (প্রধান)</strong></td>
       <td>${MASTER_ADMIN_PHONE}</td>
       <td><span class="badge-secure">🔒 সুরক্ষিত (মাস্টার কী)</span></td>
-      <td><span class="badge-role-master">👑 মাস্টার এডমিন</span></td>
+      <td><span class="badge-role-master">👑 প্রধান এডমিন</span></td>
       <td style="text-align: right;"><span class="text-muted" style="font-size:0.85rem;">ডিফল্ট (স্থায়ী)</span></td>
     </tr>
   `;
 
-  if (!state.admins || state.admins.length === 0) {
+  // Filter out master admin if present in state.admins list to avoid duplication
+  const subAdmins = (state.admins || []).filter(a => normalizePhoneSalt(a.phone) !== MASTER_ADMIN_PHONE);
+
+  if (subAdmins.length === 0) {
     html += `
       <tr>
         <td colspan="5" style="text-align: center; padding: 1.5rem; color: #64748b;">
@@ -1685,19 +1732,22 @@ function renderAdminTeam() {
       </tr>
     `;
   } else {
-    html += state.admins.map(admin => `
+    html += subAdmins.map(admin => {
+      const safeName = (admin.name || 'অজ্ঞাত এডমিন').replace(/'/g, "\\'");
+      return `
       <tr>
-        <td><strong>${admin.name}</strong></td>
-        <td>${admin.phone}</td>
-        <td><span class="badge-secure"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> সুরক্ষিত (গোপন)</span></td>
-        <td><span class="badge-role-admin">সাধারণ এডমিন</span></td>
+        <td><strong>${admin.name || 'অজ্ঞাত এডমিন'}</strong></td>
+        <td>${admin.phone || ''}</td>
+        <td><span class="badge-secure"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> সুরক্ষিত (এনক্রিপ্টকৃত)</span></td>
+        <td><span class="badge-role-admin">সাব-এডমিন</span></td>
         <td style="text-align: right;">
-          <button class="btn-table-action delete" onclick="removeAdminAccount('${admin.id}', '${admin.name}')">
+          <button class="btn-table-action delete" onclick="removeAdminAccount('${admin.id}', '${safeName}')">
             🗑️ রিমুভ করুন
           </button>
         </td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
   }
 
   tbody.innerHTML = html;
@@ -1746,11 +1796,18 @@ async function handleCreateAdmin(e) {
   try {
     if (state.usingFirebase) {
       await saveAdminToCloud(newAdmin);
+    }
+    
+    // Always update local state & backup immediately for instant UI feedback
+    const cleanNewPhone = normalizePhoneSalt(newAdmin.phone);
+    const existingIdx = state.admins.findIndex(a => a.id === newAdmin.id || normalizePhoneSalt(a.phone) === cleanNewPhone);
+    if (existingIdx !== -1) {
+      state.admins[existingIdx] = newAdmin;
     } else {
       state.admins.push(newAdmin);
-      localStorage.setItem(STORAGE_ADMINS_BACKUP_KEY, JSON.stringify(state.admins));
-      renderAdminTeam();
     }
+    localStorage.setItem(STORAGE_ADMINS_BACKUP_KEY, JSON.stringify(state.admins));
+    renderAdminTeam();
 
     closeModal('addAdminModal');
     showToast(`নতুন এডমিন "${name}" সফলভাবে যুক্ত হয়েছে! পাসওয়ার্ড এনক্রিপ্ট করা হয়েছে।`, 'success');
@@ -1881,11 +1938,12 @@ async function removeAdminAccount(adminId, adminName) {
   try {
     if (state.usingFirebase) {
       await deleteAdminFromCloud(adminId);
-    } else {
-      state.admins = state.admins.filter(a => a.id !== adminId);
-      localStorage.setItem(STORAGE_ADMINS_BACKUP_KEY, JSON.stringify(state.admins));
-      renderAdminTeam();
     }
+    
+    // Always update local state & backup immediately
+    state.admins = state.admins.filter(a => a.id !== adminId);
+    localStorage.setItem(STORAGE_ADMINS_BACKUP_KEY, JSON.stringify(state.admins));
+    renderAdminTeam();
 
     showToast(`এডমিন "${adminName}" সফলভাবে রিমুভ করা হয়েছে`, 'success');
   } catch (err) {
